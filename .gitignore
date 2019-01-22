@@ -32,7 +32,6 @@ dist/
 nbdist/
 .nb-gradle/
 **/*.class
-**/gradlew.*
 **/gradlew*
 **/gradle/*
 **/out/*
