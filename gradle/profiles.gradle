@@ -1,0 +1,42 @@
+/*
+ * Provide Gradle build profile support
+ * 
+ * from: https://www.credera.com/blog/technology-insights/java/gradle-profiles-for-multi-project-spring-boot-applications/
+ */
+ 
+subprojects {
+    // ----
+    // How to use Profiles with -P arguments
+    // ----
+    //
+    // Run gradle bootRun tasks with the -P argument to utilize a profile.
+    //
+    // For example, within a subproject's directory:
+    // gradle -Paws bootRun
+    //
+    // Or, if in the parent project's directory,
+    // individual projects can be targeted using their name:
+    // gradle -Paws :cx-dyn-engines-app:bootRun
+    
+    def awsProfile='aws'
+    def vmwareProfile='vmware'
+    def activeProfile;
+    
+    if (project.hasProperty('aws')) {
+        // Used for AWS engine hosting
+        activeProfile = awsProfile
+        apply from: rootProject.file('gradle/profile-aws.gradle');
+        
+    } else if (project.hasProperty('vmware')) {
+        // Used for vmware engine hosting
+        activeProfile = vmwareProfile
+        apply from: rootProject.file('gradle/profile-vmware.gradle');
+    
+    } else {
+        // Default to aws when no profile property is specified
+        activeProfile = 'aws'
+        //apply from: rootProject.file('gradle/profile-aws.gradle');
+    }
+    println 'Using profile: "' + activeProfile + '" for ' + project.getName()
+    ext.activeProfile = activeProfile
+}
