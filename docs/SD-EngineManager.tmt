@@ -1,0 +1,63 @@
+TRACE_MODELER_FILE_FORMAT 2
+
+# Created with Trace Modeler v1.6.11
+
+ENCODING UTF-8
+TIMESTAMP 2017/09/13 01:23:12:085
+
+# diagram style
+LIFELINE_SPACING 140
+FOUND_CALL_LENGTH 70
+
+MESSAGE_SPACING 20
+ACTIVATION_WIDTH large
+TARGET_ICON_SIZE large
+CALL_ALIGNMENT sender
+RETURN_ALIGNMENT receiver
+SHOW_FLOW false
+FLOW_COLOR #90C0FF80
+MESSAGE_NUMBERING off
+SHOW_EMPTY_RETURNS true
+LAYOUT_LEFT_TO_RIGHT true
+FONT font0 "Arial" 11
+FONT_REGULAR font0
+FONT_COMMENTS font0
+FONT_TARGETS font0
+
+
+
+DIAGRAM_FRAME "sd dyn-engines"
+
+# targets
+OBJECT target0 "EngineService"
+OBJECT target1 "Engine\nManager"
+ACTIVE_OBJECT target5 "Scan\nLauncher"
+DATABASE target3 "ScanQueued\nQueue"
+ACTIVE_OBJECT target6 "Scan\nFinisher"
+DATABASE target2 "ScanFinished\nQueue"
+OBJECT target7 "Engine\nProvisioner"
+BOUNDARY target4 "CxManager\nEngine API"
+
+# trace
+CALL target0 "start"   
+   CALL ASYNC SLOW target1 "run"   
+      CALL ASYNC SLOW target5 "run"   
+         CALL ASYNC SLOW target3 "take()"   
+         RETURN ""
+      RETURN ""
+      CALL ASYNC SLOW target6 "run"   
+         CALL SLOW target2 "take()"   
+         RETURN ""
+      RETURN ""
+   RETURN ""
+RETURN ""
+CALL target0 "stop"   
+   CALL ASYNC SLOW target1 "stop"   
+      CALL SLOW target5 "interrupt"   
+      RETURN ""
+      CALL SLOW target6 "interrupt"   
+      RETURN ""
+   RETURN ""
+RETURN ""
+
+# comments

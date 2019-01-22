@@ -1,0 +1,76 @@
+TRACE_MODELER_FILE_FORMAT 2
+
+# Created with Trace Modeler v1.6.11
+
+ENCODING UTF-8
+TIMESTAMP 2017/09/07 08:28:33:522
+
+# diagram style
+LIFELINE_SPACING 140
+FOUND_CALL_LENGTH 70
+
+MESSAGE_SPACING 20
+ACTIVATION_WIDTH large
+TARGET_ICON_SIZE large
+CALL_ALIGNMENT sender
+RETURN_ALIGNMENT receiver
+SHOW_FLOW false
+FLOW_COLOR #90C0FF80
+MESSAGE_NUMBERING off
+SHOW_EMPTY_RETURNS true
+LAYOUT_LEFT_TO_RIGHT true
+FONT font0 "Arial" 11
+FONT_REGULAR font0
+FONT_COMMENTS font0
+FONT_TARGETS font0
+
+
+
+DIAGRAM_FRAME "sd dyn-engines"
+
+# targets
+OBJECT target0 "EngineService"
+OBJECT target1 "ScanQueue\nMonitor"
+DATABASE target3 "ScanQueued\nQueue"
+DATABASE target2 "ScanFinished\nQueue"
+ENTITY target4 "CxManager\nEngine API"
+
+# trace
+CALL target0 "start"   
+   SIGNAL SLOW target1 "run"   
+      FRAGMENT "repeat"
+         OPERAND "every X secs"
+            CALL INDIRECT target4 "get scanQueue"   
+            RETURN ""
+            FRAGMENT "foreach"
+               OPERAND "scan"
+                  CALL target1 "processScan"   
+                     FRAGMENT "switch"
+                        OPERAND "status \nQueued"
+                           CALL target1 "onScanQueued"   
+                              SIGNAL target3 "add()"   
+                              RETURN ""
+                           RETURN ""
+                        OPERAND_END
+                        OPERAND "status \nScanning"
+                           CALL target1 "onScanWorking"   
+                              CALL INDIRECT target4 "blockEngine"   
+                              RETURN ""
+                           RETURN ""
+                        OPERAND_END
+                        OPERAND "status\nCompleted"
+                           CALL target1 "onScanFinished"   
+                              SIGNAL target2 "add()"   
+                              RETURN ""
+                           RETURN ""
+                        OPERAND_END
+                     FRAGMENT_END
+                  RETURN ""
+               OPERAND_END
+            FRAGMENT_END
+         OPERAND_END
+      FRAGMENT_END
+   RETURN ""
+RETURN ""
+
+# comments

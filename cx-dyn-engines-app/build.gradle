@@ -1,0 +1,44 @@
+description = 'Checkmarx CxSAST Dynamic Engine App'
+
+dependencies {
+    compile project(':cx-dyn-engines-core')
+    compile project(':cx-dyn-engines-aws')
+    compile project(':cx-dyn-engines-vmware')
+}
+
+jar {
+    manifest {
+        attributes("Implementation-Title": "Checkmarx CxSAST Dynamic Engine App",
+                   "Implementation-Version": version)
+    }
+}
+
+bootRun {
+    enabled = true
+    standardInput = System.in
+    
+    // required for passing JVM system properties via the gradle command line
+    systemProperties = System.properties
+    systemProperty "spring.profiles.active", activeProfile
+    println 'bootRun: activeProfile=' + activeProfile
+}
+
+test {
+    // required for passing JVM system properties via the gradle command line
+    systemProperties = System.properties
+    systemProperty "spring.profiles.active", System.getProperty("spring.profiles.active") ?: "test," + activeProfile
+    println 'test: activeProfile=' + activeProfile
+}
+
+bootRepackage {
+    enabled = true
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}

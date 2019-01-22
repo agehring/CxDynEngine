@@ -1,0 +1,56 @@
+USAGE:
+    java -Djasypt.encryptor.password=<key> -jar cx-dyn-engines-0.6.0-SNAPSHOT.jar
+    
+v0.7.0
+    - Add SecureString & KeystoreSecretProvider for password management (not used yet)
+    - Convert to multi-module project to support multiple EngineProvisioners
+    - Add EnginePoolConfig
+    - Add multiple EngineProvisioners
+    - Scaffold out VmwareProvisioner
+    - Add graceful console shutdown command
+    - Add retry to AWS EC2 calls
+    - Add SSL support for Cx API calls
+    - Fix: handle Cx auth session timeout
+
+v0.6.0
+    - Implemented console app which can be run as a background service
+      - NOTE: Spring Boot starts an embedded Tomcat instance, by default on port 8080, for JMX.
+      - DynEngines currently doesn't expose any JMX functionality, but will in the future.
+    - Build produces deployable zip file, use:
+      ./gradlew zip
+    - Add external config file (application.properties)
+    - Add correct handling for queued scans when no engines are available
+    - Add property/config encryption using Jasypt
+      - encryption key can be passed via Java system property -Djasypt.encryptor.password=<key>
+        or via environment variable with same name
+      - for more info, see http://www.jasypt.org
+    - Add configurable custom EC2 tags on Engine launch 
+    - Add scripting hooks for Engine launch and termination
+      - Uses Java Scripting API (JSR-223)
+      - Default scripting engines include: JS, Groovy 
+      - See https://docs.oracle.com/javase/8/docs/technotes/guides/scripting/prog_guide/api.html
+      - See sample scripts in src/main/resources/scripts
+      - Scripts can be added external to application, use application.properties to specify paths
+      
+v0.5.0
+    - Fix ScanQueue monitoring issue caused by intermittent ScanRequest datetime unmarshalling error
+    - Add error handling and retry for Cx RegisterEngine failure
+    - Add cx.concurrentScanLimit to CxConfig
+    - Add concurrent scan limit check to ScanQueueMonitor, fixing dropped scans
+    - Increased default Cx timeout from 60s to 120s
+    - Decreased default IdleMonitor interval from 60s to 30s
+    
+v0.4.0
+    - Add EnginePool configuration to application.properties (AwsEngineConfig)
+    
+v0.3.0
+    - Fix several race conditions and issues
+    - block engines after scan is working
+    - Add limited retry capability for failed engine unregister
+    - cleaned up logging
+
+v0.2.0
+    - Code review release
+
+v0.1.0
+    - Initial functional implementation

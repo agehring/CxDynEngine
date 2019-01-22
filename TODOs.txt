@@ -1,0 +1,63 @@
+Features
+[X] Add host IP aws config (usePublicUrlForCxEngine, usePrivateUrlForSpinUp)
+[X] Leave engines running until expiration time
+[X] Check registered engines, unregister idle dyn engines
+[X] Block engine after scan is working
+[X] Add engine pool config
+[X] Add max concurrent scans
+[X] Handle no available engines
+[X] Add property (password) encryption
+[X] Add engine launch/terminate scripting hooks (JSR-223)
+[X] Factor EnginePool out of AwsEngineConfig
+[X] Add SSL support, support self-signed certs
+[X] Support CxSAST v8.6
+[ ] Support token auth
+[ ] Pool level termination option - stop set at pool level
+[ ] Add minimum provisioned engines
+[X] Test NumberOfPromotableScans = 0 (Engine config)
+[ ] Move cx credentials out of CxConfig
+[ ] Add command for creating encrypted values
+[ ] Add AWS credentials
+[ ] Clean up unit tests (remove environment dependencies)
+[ ] Add concurrent scans per engine
+[ ] Add scanid tag to aws engine server
+[ ] Populate active scan map from running engines
+[ ] Clean up logging
+[ ] Refactor EngineService/EngineMonitor class structure
+[ ] Refactor EnginePool/DynamicEngine state machine
+[ ] Add ec2 post launch script
+[ ] **Refactor EnginePool to include pool queue
+[ ] **Add scriptable EnginePool match criteria
+
+Fixed
+[X] Handle Cx session timeout
+[X] AWS Describe instance failure causes scan lost - add retry 
+[X] ScanRequest dates may fail unmarshalling if they don't contain 3 millisec digits
+[X] Nullpointer during blocking - think due to v8.6 EngineState change
+[ ] Disk encryption caused launch failure - what does AWS return?
+[ ] cxManagerURL is logged incorrectly
+[ ] Launching multiple scans on startup, exceeds limits
+[ ] Nullpointer when cancel scan from CxPortal
+
+
+RANDY
+[X] Pull out EnginePool config
+[X] Add external spring config for multiple EngineProvisioners
+[X] Modularlize EngineProvisioners
+[X] Scaffold VmwareProvisioner (separate module)
+
+SERGIO
+[ ] Define and implement VmwareConfig
+[ ] Implement VmwareProvisioner
+
+MOVE SALES
+[ ] Check on IAM Role based AWS authentication
+[ ] Support static engines
+[ ] Support minimum running engines
+[ ] Restarting DynEngine with engine actively scanning
+     - Check how expiration is handled for existing eng
+     
+CxMS
+[ ] Test start/stop times for large instances
+[ ] Allow start/stop not terminate on pool basis (m5 - 50s)
+[X] Check logic when launching engine times out - should terminate old, launch new engine

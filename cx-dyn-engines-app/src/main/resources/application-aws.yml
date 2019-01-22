@@ -1,0 +1,84 @@
+server:
+  port: 8585
+
+logging:
+  file: cx-engines.log
+  level:
+    com:
+      checkmarx:
+        engine: info
+    org:
+      apache:
+        http: info
+      org:
+        springframework: info
+
+cx:
+  cxEngineUseSSL: true
+  concurrentScanLimit: 3
+  cxEnginePrefix: '**'
+  expireEngineBufferMins: 1
+  idleMonitorSecs: 30
+  password: xxx
+  queueCapacity: 100
+  queueIntervalSecs: 15
+  queueingEngineName: DynamicEngine
+  restUrl: https://cx.ken-mcdonald.com
+  timeoutSecs: 120
+  userName: xxx
+
+cx-aws-engine:
+  assignPublicIP: true
+  cxEngineTimeoutSec: 600
+  cxVersion: 8.8.0.72
+  engineSizeMap:
+    S: t3.large
+    M: m5.xlarge
+    L: r5.xlarge
+    XL: r5.2xlarge
+  iamProfile: cx-de
+  imageId: ami-04e7c91826d179728
+  #imageId: ami-0eb2c0e009454c4df
+  keyName: Cx_DE
+  launchTimeoutSec: 60
+  monitorPollingIntervalSecs: 10
+  scriptOnLaunch: scripts/launch.groovy
+  scriptOnTerminate: scripts/terminate.groovy
+  securityGroup: sg-04ed28298b8ec3106
+  subnetId: subnet-39b72265
+  tagMap:
+    client: abc
+    component: dynamic-engine
+  terminateOnStop: true
+  usePublicUrlForCx: true
+  usePublicUrlForMonitor: true
+
+cx-engine:
+  engineExpireIntervalSecs: 3600
+  enginePrefix: cx-engine
+  pool:
+    - count: 3
+      minimum: 0
+      scanSize:
+        maxLOC: 250000
+        minLOC: 100000
+        name: S
+    - count: 3
+      minimum: 0
+      scanSize:
+        maxLOC: 1000000
+        minLOC: 250000
+        name: M
+    - count: 1
+      minimum: 0
+      scanSize:
+        maxLOC: 2500000
+        minLOC: 1000000
+        name: L
+    - count: 1
+      minimum: 0
+      scanSize:
+        maxLOC: 999999999
+        minLOC: 2500000
+        name: XL
+        

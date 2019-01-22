@@ -1,0 +1,12 @@
+description = 'Checkmarx CxSAST Dynamic Engine Core library'
+
+dependencies {
+    // add module specific dependencies here
+}
+
+jar {
+    manifest {
+        attributes("Implementation-Title": "Checkmarx CxSAST Dynamic Engine SDK",
+                   "Implementation-Version": version)
+    }
+}

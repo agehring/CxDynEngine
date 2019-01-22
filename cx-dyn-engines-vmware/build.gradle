@@ -1,0 +1,18 @@
+description = 'Checkmarx CxSAST Dynamic Engine VMware Library'
+
+dependencies {
+    compile project(':cx-dyn-engines-core')
+    //compile(
+        // uncomment and add vmware libraries here
+    //)
+}
+
+jar {
+    baseName = 'cx-dyn-engines-vmware'
+
+    manifest {
+        attributes("Implementation-Title": "Checkmarx Dynamic Engines VMware Library",
+                   "Implementation-Version": version)
+    }
+}
+

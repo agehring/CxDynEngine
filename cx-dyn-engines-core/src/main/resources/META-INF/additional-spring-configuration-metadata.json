@@ -1,0 +1,147 @@
+{"properties": [
+  {
+    "name": "cx.userName",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.userName'"
+  },
+  {
+    "name": "cx.password",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.password'"
+  },
+  {
+    "name": "cx.restUrl",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.restUrl'"
+  },
+  {
+    "name": "cx.queueIntervalSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.queueIntervalSecs'"
+  },
+  {
+    "name": "cx.enginePoolPrefix",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.enginePoolPrefix'"
+  },
+  {
+    "name": "cx-aws-engine.assignPublicIP",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.assignPublicIP'"
+  },
+  {
+    "name": "cx-aws-engine.cxEngineTimeoutSec",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.cxEngineTimeoutSec'"
+  },
+  {
+    "name": "cx-aws-engine.cxVersion",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.cxVersion'"
+  },
+  {
+    "name": "cx-aws-engine.iamProfile",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.iamProfile'"
+  },
+  {
+    "name": "cx-aws-engine.imageId",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.imageId'"
+  },
+  {
+    "name": "cx-aws-engine.keyName",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.keyName'"
+  },
+  {
+    "name": "cx-aws-engine.launchTimeoutSec",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.launchTimeoutSec'"
+  },
+  {
+    "name": "cx-aws-engine.monitorPollingIntervalSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.monitorPollingIntervalSecs'"
+  },
+  {
+    "name": "cx-aws-engine.securityGroup",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.securityGroup'"
+  },
+  {
+    "name": "cx-aws-engine.subnetId",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.subnetId'"
+  },
+  {
+    "name": "cx-aws-engine.terminateOnStop",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.terminateOnStop'"
+  },
+  {
+    "name": "cx-aws-engine.usePublicUrlForCx",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.usePublicUrlForCx'"
+  },
+  {
+    "name": "cx-aws-engine.usePublicUrlForMonitor",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.usePublicUrlForMonitor'"
+  },
+  {
+    "name": "cx-aws-engine.engineSizeMap",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.engineSizeMap.S'"
+  },
+  {
+    "name": "cx.timeoutSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.timeoutSecs'"
+  },
+  {
+    "name": "cx.cxEnginePrefix",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.cxEnginePrefix'"
+  },
+  {
+    "name": "cx.queueingEngineId",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.queueingEngineId'"
+  },
+  {
+    "name": "cx.idleMonitorSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.idleMonitorSecs'"
+  },
+  {
+    "name": "cx-aws-engine.instanceExpireIntervalSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.instanceExpireIntervalSecs'"
+  },
+  {
+    "name": "cx.engineExpireIntervalSecs",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.engineExpireIntervalSecs'"
+  },
+  {
+    "name": "cx.queueCapacity",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.queueCapacity'"
+  },
+  {
+    "name": "cx-aws-engine.pool[0].scanSize.name",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.pool[0].scanSize.name'"
+  },
+  {
+    "name": "cx.concurrentScanLimit",
+    "type": "java.lang.String",
+    "description": "Maximum concurrent scans"
+  },
+  {
+    "name": "cx.expireEngineBufferMins",
+    "type": "java.lang.String",
+    "description": "A description for 'cx.expireEngineBufferMins'"
+  }
+]}
