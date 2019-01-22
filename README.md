@@ -24,6 +24,21 @@ To run the dynamic engine service,
 java -Djasypt.encryptor.password='CxR0cks!!' -Dspring.profiles.active=aws -jar cx-dyn-engines-app-0.7.0-SNAPSHOT.jar
 ```
 
+or
+
+```
+java -jar cx-dyn-engines-app-<ver>-SNAPSHOT.jar  \
+--spring.profiles.active=aws \
+--spring.config.location=application.yml
+```
+
+*Required Overrides*
+CX_USERNAME | --cx.userName
+CX_PASSWORD | --cx.password
+AWS_ACCESS_KEY_ID (if not using AWS IAM Instance Role)
+AWS_SECRET_ACCESS_KEY (if not using AWS IAM Instance Role)
+*See https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html*
+
 Using
 
 *Using Gradle*
@@ -31,4 +46,6 @@ Using
 ```
 ./gradlew bootRun or ./gradlew clean bootRun
 ```
+
+
 
