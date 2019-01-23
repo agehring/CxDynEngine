@@ -2,9 +2,9 @@ description = 'Checkmarx CxSAST Dynamic Engine VMware Library'
 
 dependencies {
     compile project(':cx-dyn-engines-core')
-    //compile(
-        // uncomment and add vmware libraries here
-    //)
+    compile(
+        'com.vmware:vijava:5.1'
+    )
 }
 
 jar {
