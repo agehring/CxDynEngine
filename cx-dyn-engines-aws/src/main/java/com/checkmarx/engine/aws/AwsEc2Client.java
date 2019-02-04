@@ -136,14 +136,18 @@ public class AwsEc2Client implements AwsComputeClient {
 		profile.withName(config.getIamProfile());
 		
 		final RunInstancesRequest runRequest = new RunInstancesRequest();
-		runRequest.withImageId(config.getImageId())
-			.withInstanceType(instanceType)
+			runRequest.withInstanceType(instanceType)
 			.withKeyName(config.getKeyName())
 			.withMinCount(1)
 			.withMaxCount(1)
 			.withNetworkInterfaces(nic)
 			.withIamInstanceProfile(profile)
 			.withTagSpecifications(tagSpec);
+
+		if(config.getIamProfile() != null && !config.getIamProfile().isEmpty()) {
+			runRequest.withImageId(config.getImageId());
+		}
+
 		return runRequest;
 	}
 
