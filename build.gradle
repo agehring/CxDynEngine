@@ -63,12 +63,12 @@ subprojects {
             'commons-io:commons-io:2.6',
             'com.github.ulisesbocchio:jasypt-spring-boot-starter:1.16',
             'org.apache.commons:commons-lang3:3.6',
-            'org.codehaus.groovy:groovy-all'
+            'org.codehaus.groovy:groovy-all',
         )
         compileOnly('org.springframework.boot:spring-boot-configuration-processor')
         testCompile('org.springframework.boot:spring-boot-starter-test')
     }
-    
+
     dependencyManagement {
         imports {
             mavenBom 'org.springframework.cloud:spring-cloud-dependencies:Camden.SR7'

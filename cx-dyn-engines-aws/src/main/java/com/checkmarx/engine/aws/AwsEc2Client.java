@@ -132,18 +132,22 @@ public class AwsEc2Client implements AwsComputeClient {
 			.withGroups(config.getSecurityGroup())
 			.withAssociatePublicIpAddress(config.isAssignPublicIP());
 
-		final IamInstanceProfileSpecification profile = new IamInstanceProfileSpecification();
-		profile.withName(config.getIamProfile());
 		
 		final RunInstancesRequest runRequest = new RunInstancesRequest();
-		runRequest.withImageId(config.getImageId())
-			.withInstanceType(instanceType)
+			runRequest.withInstanceType(instanceType)
+			.withImageId(config.getImageId())
 			.withKeyName(config.getKeyName())
 			.withMinCount(1)
 			.withMaxCount(1)
 			.withNetworkInterfaces(nic)
-			.withIamInstanceProfile(profile)
 			.withTagSpecifications(tagSpec);
+
+		if(config.getIamProfile() != null && !config.getIamProfile().isEmpty()) {
+			final IamInstanceProfileSpecification profile = new IamInstanceProfileSpecification();
+			profile.withName(config.getIamProfile());
+			runRequest.setIamInstanceProfile(profile);
+		}
+
 		return runRequest;
 	}
 
