@@ -1,5 +1,5 @@
 server:
-  port: 8585
+  port: 8585 #Port for webserver to run (/health endpoint can be used to monitor service is up)
 
 logging:
   file: cx-engines.log
@@ -14,22 +14,22 @@ logging:
         springframework: info
 
 cx:
-  cxEngineUseSSL: true
-  concurrentScanLimit: 3
-  cxEnginePrefix: '**'
-  expireEngineBufferMins: 1
-  idleMonitorSecs: 30
-  password: xxx
+  cxEngineUseSSL: true #Use http/https to monitor and register Engines with
+  concurrentScanLimit: 3 #Max number of concurrent scans (Engines) that DE will manage
+  cxEnginePrefix: '**' #Prefix used within Registering engine in CX UI
+  expireEngineBufferMins: 1 #Grace period before expiring and engine
+  idleMonitorSecs: 30 #How often to check idle engines to determine if expired (ready for termination)
   queueCapacity: 100
   queueIntervalSecs: 15
-  queueingEngineName: DynamicEngine
+  queueingEngineName: DynamicEngine #Name given to the Blocked Engine in Cx UI
   restUrl: https://cx.ken-mcdonald.com
-  timeoutSecs: 120
-  userName: xxx
+  timeoutSecs: 120 #HTTP client request timeout (connection and read)
+  userName: xxx #Checkmarx user (must have access to register engines)
+  password: xxx #Checkmarx password
 
 cx-aws-engine:
   assignPublicIP: true
-  cxEngineTimeoutSec: 600
+  cxEngineTimeoutSec: 600 #how many seconds to wait for instance to launch before considered a failure
   cxVersion: 8.8.0.72
   engineSizeMap:
     S: t3.large
@@ -37,32 +37,31 @@ cx-aws-engine:
     L: r5.xlarge
     XL: r5.2xlarge
   iamProfile: cx-de
-  imageId: ami-04e7c91826d179728
-  #imageId: ami-0eb2c0e009454c4df
-  keyName: Cx_DE
-  launchTimeoutSec: 60
-  monitorPollingIntervalSecs: 10
+  imageId: ami-04e7c91826d179728 #AMI ID of the Engine Server
+  keyName: Cx_DE #AWS Key name for support purposes
+  launchTimeoutSec: 60 #Amount of time to wait for an instance to move out of PENDING state in AWS
+  monitorPollingIntervalSecs: 10 #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
   scriptOnLaunch: scripts/launch.groovy
   scriptOnTerminate: scripts/terminate.groovy
-  securityGroup: sg-04ed28298b8ec3106
-  subnetId: subnet-39b72265
+  securityGroup: sg-04ed28298b8ec3106 #AWS Security Group to apply to launched Engines
+  subnetId: subnet-39b72265 #AWS Subnet ID to launch Engines into
   tagMap:
     client: abc
     component: dynamic-engine
   terminateOnStop: true
-  usePublicUrlForCx: true
-  usePublicUrlForMonitor: true
+  usePublicUrlForCx: true #Cx will register the Engine with Public or Private IP
+  usePublicUrlForMonitor: true #DE will monitor if an Engine is up and running based on Public or Private IP
 
 cx-engine:
-  engineExpireIntervalSecs: 3600
-  enginePrefix: cx-engine
+  engineExpireIntervalSecs: 3600 #Blocks of time an instance is paid by - this is used for expiring/termination of instances
+  enginePrefix: cx-engine #Prefix given to naming the instance within the cloud provider
   pool:
-    - count: 3
-      minimum: 0
+    - count: 3 #Maximum number of instances that will be launched for this pool mapping
+      minimum: 0 #Leave as zero to ensure engines are cleaned up, otherwise engines will stay at a minimum count once one is launched
       scanSize:
         maxLOC: 250000
         minLOC: 100000
-        name: S
+        name: S #Name to map to the cx-aws-engine.engineSizeMap
     - count: 3
       minimum: 0
       scanSize:

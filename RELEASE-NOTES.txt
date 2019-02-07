@@ -1,6 +1,9 @@
 USAGE:
     java -Djasypt.encryptor.password=<key> -jar cx-dyn-engines-0.6.0-SNAPSHOT.jar
     
+v0.8.1
+	- Sort ScanRequest queue by QueuedOn datetime to avoid ScansManager queuing issue
+	- Format ScanRequest datetime fields in log output
 v0.7.0
     - Add SecureString & KeystoreSecretProvider for password management (not used yet)
     - Convert to multi-module project to support multiple EngineProvisioners
