@@ -1,6 +1,10 @@
 USAGE:
     java -Djasypt.encryptor.password=<key> -jar cx-dyn-engines-0.6.0-SNAPSHOT.jar
-    
+v1.0
+    - Allow for Engines to have no IAM role in AWS
+    - Allow for Static and Dynamic Pools
+    - Add VMWare module
+    - Add sample yaml property with detailed comments
 v0.8.1
 	- Sort ScanRequest queue by QueuedOn datetime to avoid ScansManager queuing issue
 	- Format ScanRequest datetime fields in log output
