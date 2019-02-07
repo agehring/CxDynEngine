@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2017-2019 Checkmarx
- *  
+ *
  * This software is licensed for customer's internal use only.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
@@ -19,6 +19,7 @@ import java.util.Objects;
 
 import org.joda.time.DateTime;
 
+import com.checkmarx.engine.utils.ScanUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -28,7 +29,7 @@ import com.google.common.base.MoreObjects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ScanRequest {
-	
+
 	public enum ScanStatus {
 
 		Unknown(0),
@@ -41,7 +42,7 @@ public class ScanRequest {
 		Canceled(8),
 		Failed(9),
 		SourcePullingAndDeployment(10);
-		
+
 		private int stageId;
 		public int getStageId() {
 			return stageId;
@@ -50,7 +51,7 @@ public class ScanRequest {
 		private ScanStatus(int stageId) {
 			this.stageId = stageId;
 		}
-		
+
 		public static ScanStatus from(long stageId) {
 			for (ScanStatus state : ScanStatus.values()) {
 				if (stageId == state.stageId)
@@ -58,16 +59,16 @@ public class ScanRequest {
 			}
 			return ScanStatus.Unknown;
 		}
-		
+
 		public static ScanStatus from(Stage stage) {
 			return stage == null ? ScanStatus.Unknown : from(stage.getId());
 		}
-		
+
 		public static Stage to(ScanStatus status) {
 			return new Stage(status.stageId, status.name());
 		}
 	}
-	
+
 	//private static final String TZ = "America/Chicago";
 	//private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
@@ -95,10 +96,10 @@ public class ScanRequest {
 		// default .ctor
 	}
 
-	public ScanRequest(long id, String runId, String teamId, Project project, Stage stage, 
-			Integer loc, boolean incremental, boolean isPublic, String origin,
-			ProgramLanguage[] languages, DateTime dateCreated, DateTime queuedOn, DateTime engineStartedOn
-			) {
+	public ScanRequest(long id, String runId, String teamId, Project project, Stage stage,
+					   Integer loc, boolean incremental, boolean isPublic, String origin,
+					   ProgramLanguage[] languages, DateTime dateCreated, DateTime queuedOn, DateTime engineStartedOn
+	) {
 		this.id = id;
 		this.runId = runId;
 		this.stage = stage;
@@ -124,7 +125,7 @@ public class ScanRequest {
 	public String getRunId() {
 		return runId;
 	}
-	
+
 	@JsonIgnore
 	public ScanStatus getStatus() {
 		return ScanStatus.from(stage);
@@ -145,7 +146,7 @@ public class ScanRequest {
 	public Long getEngineId() {
 		return engine == null ? null : engine.getId();
 	}
-	
+
 	public Engine getEngine() {
 		return engine;
 	}
@@ -203,7 +204,7 @@ public class ScanRequest {
 		getLanguages().forEach(lang -> sb.append(lang.toString() + ", "));
 		return sb.toString();
 	}
-	
+
 	protected MoreObjects.ToStringHelper toStringHelper() {
 		return MoreObjects.toStringHelper(this)
 				.add("id", id)
@@ -212,8 +213,8 @@ public class ScanRequest {
 				.add("projectId", project.getId())
 				.add("engineId", getEngineId())
 				.add("loc", loc)
-				.add("dateCreated", dateCreated)	
-				.omitNullValues();
+				.add("dateCreated", ScanUtils.printDate(dateCreated))
+				.add("queuedOn", ScanUtils.printDate(queuedOn));
 	}
 
 	@Override
@@ -221,7 +222,7 @@ public class ScanRequest {
 		return toStringHelper()
 				.toString();
 	}
-	
+
 	public String toString(boolean includeAll) {
 		if (!includeAll) return toString();
 
@@ -230,7 +231,7 @@ public class ScanRequest {
 				.add("stage", stage)
 				.add("teamId", teamId)
 				.add("languages", printLanguages())
-				.add("dateCreated", dateCreated)	
+				.add("dateCreated", dateCreated)
 				.add("queuedOn", queuedOn)
 				.add("engineStartedOn", engineStartedOn)
 				.add("incremental", incremental)

@@ -1,8 +1,8 @@
 /*******************************************************************************
  * Copyright (c) 2017-2019 Checkmarx
- *  
+ *
  * This software is licensed for customer's internal use only.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
@@ -19,17 +19,19 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.checkmarx.engine.domain.EnginePool;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.rest.CxEngineApi;
 import com.checkmarx.engine.rest.model.ScanRequest;
+import com.checkmarx.engine.utils.ScanUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class ScanQueueMonitor implements Runnable {
-	
+
 	private static final Logger log = LoggerFactory.getLogger(ScanQueueMonitor.class);
 
 	private final BlockingQueue<ScanRequest> scanQueued;
@@ -47,16 +49,16 @@ public class ScanQueueMonitor implements Runnable {
 	//private final CxConfig config;
 	private final int concurrentScanLimit;
 	private final AtomicInteger concurrentScans = new AtomicInteger(0);
-	
+
 	public ScanQueueMonitor(
-			BlockingQueue<ScanRequest> scanQueued, 
+			BlockingQueue<ScanRequest> scanQueued,
 			//BlockingQueue<ScanRequest> scanWorking,
 			BlockingQueue<ScanRequest> scanFinished,
 			EnginePool enginePool,
 			CxEngineApi cxClient,
 			CxConfig config) {
 		log.info("ctor(): {}", config);
-		
+
 		this.scanQueued = scanQueued;
 		//this.scanWorking = scanWorking;
 		this.scanFinished = scanFinished;
@@ -69,25 +71,27 @@ public class ScanQueueMonitor implements Runnable {
 	@Override
 	public void run() {
 		log.trace("run()");
-		
+
 		try {
 			final List<ScanRequest> queue = cxClient.getScansQueue();
 			log.debug("action=getScansQueue; scanCount={}", queue.size());
-			// TODO: order list before processing, process finished scans first
+
+			// order queue before processing to avoid ScansManager queue bug
+			ScanUtils.sortQueue(queue);
 			queue.forEach((scan) -> processScan(scan));
 
 			//TODO: check for missing scans and treat as finished
 		} catch (Throwable t) {
-			log.error("Error occurred while polling scan queue, cause={}; message={}", 
-					t, t.getMessage(), t); 
+			log.error("Error occurred while polling scan queue, cause={}; message={}",
+					t, t.getMessage(), t);
 			//TODO: determine if unexpected error should terminate monitor; for now swallow
 		}
-		
+
 	}
 
 	private void processScan(ScanRequest scan) {
 		log.debug("processScan(): {}", scan);
-		
+
 		final long scanId = scan.getId();
 		//if the scan loc is zero, it is not ready to determine if applicable to Dynamic Engines
 		//if the calcEngineSize ends up with null, their is no applicable engine, therefore Dynamic Engines ignores
@@ -122,7 +126,7 @@ public class ScanQueueMonitor implements Runnable {
 		if (activeScanMap.containsKey(scanId)) {
 			return;
 		}
-			
+
 		// skip if at concurrent scan limit
 		if (concurrentScans.get() >= concurrentScanLimit) {
 			log.debug("At concurrent scan limit, defering scan...");
@@ -133,7 +137,7 @@ public class ScanQueueMonitor implements Runnable {
 		final int count = concurrentScans.incrementAndGet();
 		scanQueued.add(scan);
 		activeScanMap.put(scanId, scan);
-		log.info("Scan queued: {}; concurrentCount={}; concurrentLimit={}", 
+		log.info("Scan queued: {}; concurrentCount={}; concurrentLimit={}",
 				scan, count, concurrentScanLimit);
 	}
 
@@ -157,11 +161,11 @@ public class ScanQueueMonitor implements Runnable {
 
 	private void onCompleted(final long scanId, ScanRequest scan) {
 		log.trace("onCompleted(): {}", scan);
-		
+
 		if (activeScanMap.remove(scanId) == null ) {
 			return;
 		}
-		
+
 		final int count = concurrentScans.decrementAndGet();
 
 		log.debug("Scan complete, adding to scanFinished queue; id={}", scanId);
