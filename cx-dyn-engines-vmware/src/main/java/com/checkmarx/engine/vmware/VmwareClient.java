@@ -39,7 +39,7 @@ public class VmwareClient{
 	
 	private final VmwareEngineConfig config;
 	
-	private final Folder vmsFolder = null;
+	//private final Folder vmsFolder = null;
 
 	public VmwareClient(VmwareEngineConfig config) throws RemoteException, MalformedURLException {
 		

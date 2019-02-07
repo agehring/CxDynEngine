@@ -40,8 +40,7 @@ public class VmwareEngineConfigTests extends VmwareSpringTest {
 		log.trace("test()");
 		
 		log.info("{}", config);
-		
-		assertThat(config.getExample(), is("example"));
+		assertThat(config.getUrlStr(), is("https://IPADDRESS/sdk"));
 	}
 
 }
