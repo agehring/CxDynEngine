@@ -13,6 +13,8 @@
  ******************************************************************************/
 package com.checkmarx.engine.aws;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -256,18 +258,21 @@ public class AwsEc2Client implements AwsComputeClient {
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public List<Instance> find(String tag, String... values) {
-		log.trace("list(): tag={}; values={}", tag, values);
+	public List<Instance> find(Map<String, String> tags) {
+		log.trace("list(): tag={}", tags);
 		
 		try {
 			final List<Instance> allInstances = Lists.newArrayList();
 			final DescribeInstancesRequest request = new DescribeInstancesRequest();
-			
-			if (!Strings.isNullOrEmpty(tag)) {
-				final List<String> tagValues = Lists.newArrayList(values);
-				final String filterKey = String.format("tag:%s", tag);
-				final Filter filter = new Filter(filterKey, tagValues);
-				request.withFilters(filter);
+			List<Filter> filters = new ArrayList<>();
+			for (Map.Entry<String, String> tag : tags.entrySet()) {
+				if(!Strings.isNullOrEmpty(tag.getKey()) && !Strings.isNullOrEmpty(tag.getValue())) {
+					filters.add(new Filter("tag:".concat(tag.getKey()), Collections.singletonList(tag.getValue())));
+				}
+			}
+
+			if (!filters.isEmpty()) {
+				request.withFilters(filters);
 			}
 	
 			final DescribeInstancesResult result = client.describeInstances(request);
@@ -275,8 +280,7 @@ public class AwsEc2Client implements AwsComputeClient {
 				allInstances.addAll(reservation.getInstances());
 			}
 
-			log.debug("action=findInstances; tag={}; values={}; found={}", 
-					tag, values, allInstances.size());
+			log.debug("action=findInstances; tags={}; found={}", tags, allInstances.size());
 			
 			return allInstances;
 		} catch (AmazonClientException e) {

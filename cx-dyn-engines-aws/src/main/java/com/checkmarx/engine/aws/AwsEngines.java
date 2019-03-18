@@ -106,9 +106,13 @@ public class AwsEngines implements CxEngines {
 		final Map<String, String> tags = createCxTags(CxServerRole.ENGINE, awsConfig.getCxVersion());
 		tags.put(CX_SIZE_TAG, size);
 		// add custom tags from configuration
-		awsConfig.getTagMap().forEach( (tag,value) -> {
-			tags.put(tag, value);
-		});
+		awsConfig.getTagMap().forEach(tags::put);
+		return tags;
+	}
+
+	private Map<String, String> getEngineTags() {
+		final Map<String, String> tags = createCxTags(CxServerRole.ENGINE, awsConfig.getCxVersion());
+		awsConfig.getTagMap().forEach(tags::put);
 		return tags;
 	}
 
@@ -117,7 +121,7 @@ public class AwsEngines implements CxEngines {
 		
 		final Stopwatch timer = Stopwatch.createStarted(); 
 		try {
-			final List<Instance> engines = ec2Client.find(CX_ROLE_TAG, CxServerRole.ENGINE.toString());
+			final List<Instance> engines = ec2Client.find(getEngineTags());
 			engines.forEach((instance) -> {
 				if (Ec2.isTerminated(instance)) {
 					log.info("Terminated engine found: {}", Ec2.print(instance));
@@ -137,7 +141,7 @@ public class AwsEngines implements CxEngines {
 		}
 		return provisionedEngines;
 	}
-	
+
 	@Override
 	public List<DynamicEngine> listEngines() {
 		final Map<String, Instance> engines = findEngines();

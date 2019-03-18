@@ -22,7 +22,7 @@ cx:
   queueCapacity: 100
   queueIntervalSecs: 15
   queueingEngineName: DynamicEngine #Name given to the Blocked Engine in Cx UI
-  restUrl: https://xxxx.com
+  restUrl: https://cx.ken-mcdonald.com
   timeoutSecs: 120 #HTTP client request timeout (connection and read)
   userName: xxx #Checkmarx user (must have access to register engines)
   password: xxx #Checkmarx password
@@ -50,7 +50,7 @@ cx-aws-engine:
     component: dynamic-engine
   terminateOnStop: true
   usePublicUrlForCx: false #Cx will register the Engine with Public or Private IP
-  usePublicUrlForMonitor: false #DE will monitor if an Engine is up and running based on Public or Private IP
+  usePublicUrlForMonitor: true #DE will monitor if an Engine is up and running based on Public or Private IP
 
 cx-engine:
   engineExpireIntervalSecs: 3600 #Blocks of time an instance is paid by - this is used for expiring/termination of instances
