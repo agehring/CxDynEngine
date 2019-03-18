@@ -1,6 +1,6 @@
 allprojects {
     group = 'com.checkmarx'
-    version = '1.0-SNAPSHOT'
+    version = '1.0.1-SNAPSHOT'
 
     apply plugin: 'eclipse'
 

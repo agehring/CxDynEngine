@@ -54,11 +54,10 @@ public interface AwsComputeClient {
 	/**
 	 * Queries AWS for EC2 instances with the supplied tag info
 	 * 
-	 * @param tag tag key
-	 * @param values tag values to match
+	 * @param tags Map containing tag,value 
 	 * @return list of instances matching the supplied tag
 	 */
-	List<Instance> find(String tag, String... values);
+	List<Instance> find(Map<String, String> tags);
 
 	/**
 	 * Describes an EC2 instance
