@@ -96,7 +96,7 @@ public class ScanQueueMonitor implements Runnable {
 		//if the scan loc is zero, it is not ready to determine if applicable to Dynamic Engines
 		//if the calcEngineSize ends up with null, their is no applicable engine, therefore Dynamic Engines ignores
 		//TODO replace this block when static engines are managed by Dynamic Engines
-		if(enginePool.calcEngineSize(scan.getLoc()) == null && scan.getLoc() > 0){
+		if(enginePool.calcEngineSize(scan.getLoc()) == null && scan.getLoc() >= 0){
 			log.debug("Scan with id {} with loc {} is being ignored by DynamicEngines", scan.getId(), scan.getLoc());
 			return;
 		}
