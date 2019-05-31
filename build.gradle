@@ -66,7 +66,6 @@ subprojects {
             'org.codehaus.groovy:groovy-all',
         )
 		annotationProcessor ('org.springframework.boot:spring-boot-configuration-processor')
-        //compileOnly('org.springframework.boot:spring-boot-configuration-processor')
         testCompile('org.springframework.boot:spring-boot-starter-test')
     }
 

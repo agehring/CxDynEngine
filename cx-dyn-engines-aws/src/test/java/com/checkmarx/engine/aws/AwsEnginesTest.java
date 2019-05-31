@@ -24,6 +24,7 @@ import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,7 @@ public class AwsEnginesTest extends AwsSpringTest {
 	public void setUp() throws Exception {
 		log.trace("setUp()");
 
-		//Assume.assumeTrue(super.runAwsIntegrationTests());
+		Assume.assumeTrue(super.runAwsIntegrationTests());
 
 		assertThat(awsEngines, is(notNullValue()));
 	}
@@ -98,6 +99,8 @@ public class AwsEnginesTest extends AwsSpringTest {
 	}
 
 	@Test
+	@Ignore
+	// this test takes about 10 mins to run.  Comment out @Ignore to run
 	public void testLaunchAndStop() throws Exception {
 		log.trace("testLaunchAndStop()");
 		
