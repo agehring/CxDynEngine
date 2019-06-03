@@ -11,24 +11,24 @@ dependencies {
 }
 
 jar {
-	enabled = false
+    enabled = false
 }
 
 bootJar {
     enabled = true
     manifest {
         attributes("Implementation-Title": "Checkmarx CxSAST Dynamic Engine App",
-                   "Implementation-Version": version)
+        "Implementation-Version": version)
     }
 }
 
 bootRun {
     enabled = true
     standardInput = System.in
-    
+
     // required for passing JVM system properties via the gradle command line
     systemProperties = System.properties
-    
+
     def currentProfile = System.getProperty("spring.profiles.active", activeProfile)
     systemProperty "spring.profiles.active", currentProfile
     println 'bootRun: activeProfile=' + currentProfile
@@ -51,5 +51,5 @@ artifacts {
 }
 
 springBoot {
-	buildInfo()
+    buildInfo()
 }

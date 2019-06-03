@@ -1,8 +1,8 @@
 plugins {
-	id 'java'
-	id 'com.gradle.build-scan' version '2.3'
-	id 'org.springframework.boot' version '2.1.5.RELEASE' apply false
-	id 'io.spring.dependency-management' version '1.0.7.RELEASE' apply false
+    id 'java'
+    id 'com.gradle.build-scan' version '2.3'
+    id 'org.springframework.boot' version '2.1.5.RELEASE' apply false
+    id 'io.spring.dependency-management' version '1.0.7.RELEASE' apply false
     id 'com.gorylenko.gradle-git-properties' version '2.0.0' apply false
 }
 
@@ -28,22 +28,22 @@ subprojects {
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-    
+
     repositories {
         mavenLocal()
-		jcenter()
+        jcenter()
         mavenCentral()
     }
-    
+
     eclipse {
         classpath {
-           downloadSources=true
-           downloadJavadoc=true
+            downloadSources=true
+            downloadJavadoc=true
         }
     }
 
     dependencies {
-	    implementation ( 
+        implementation (
             'org.springframework.boot:spring-boot-starter-web',
             'org.springframework.boot:spring-boot-starter-aop',
             'org.springframework.boot:spring-boot-starter-actuator',
@@ -56,26 +56,26 @@ subprojects {
             'commons-io:commons-io:2.6',
             'com.github.ulisesbocchio:jasypt-spring-boot-starter:2.1.1',
             'org.apache.commons:commons-lang3:3.6',
-		)
-		implementation ('org.codehaus.groovy:groovy-all:2.5.7') {
-			exclude group: 'org.codehaus.groovy', module: 'groovy-test-junit5'
-		}
-	
-		annotationProcessor ('org.springframework.boot:spring-boot-configuration-processor')
-	    testImplementation ('org.springframework.boot:spring-boot-starter-test')
-        
+        )
+        implementation ('org.codehaus.groovy:groovy-all:2.5.7') {
+            exclude group: 'org.codehaus.groovy', module: 'groovy-test-junit5'
+        }
+
+        annotationProcessor ('org.springframework.boot:spring-boot-configuration-processor')
+        testImplementation ('org.springframework.boot:spring-boot-starter-test')
+
         runtimeOnly('org.springframework.boot:spring-boot-properties-migrator')
-	
-	    components {
-	        withModule('org.springframework:spring-beans') {
-	            allVariants {
-	                withDependencyConstraints {
-	                    // Need to patch constraints because snakeyaml is an optional dependency
-	                    it.findAll { it.name == 'snakeyaml' }.each { it.version { strictly '1.19' } }
-	                }
-	            }
-	        }
-	    }
+
+        components {
+            withModule('org.springframework:spring-beans') {
+                allVariants {
+                    withDependencyConstraints {
+                        // Need to patch constraints because snakeyaml is an optional dependency
+                        it.findAll { it.name == 'snakeyaml' }.each { it.version { strictly '1.19' } }
+                    }
+                }
+            }
+        }
     }
 
     dependencyManagement {
@@ -94,18 +94,18 @@ subprojects {
     bootJar {
         enabled = false
     }
-	
-	// enable normal jar for all modules, will disable for app jar
-	jar {
-		enabled = true
-	}
+
+    // enable normal jar for all modules, will disable for app jar
+    jar {
+        enabled = true
+    }
 }
 
 buildScan {
     // always accept the terms of service
     termsOfServiceUrl = 'https://gradle.com/terms-of-service'
     termsOfServiceAgree = 'yes'
-    
+
     // always publish a build scan
     publishAlways()
 }

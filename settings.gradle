@@ -1,10 +1,10 @@
 pluginManagement {
-	repositories {
+    repositories {
         mavenLocal()
-		jcenter()
+        jcenter()
         mavenCentral()
-		gradlePluginPortal()
-	}
+        gradlePluginPortal()
+    }
 }
 
 rootProject.name = 'cx-dyn-engines-parent'
