@@ -49,7 +49,7 @@ import com.google.common.base.Strings;
 /**
  * Loads and runs a script from a specified file.
  *  
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  * @param <T> Type of data to be bound and passed to the running script.
  */

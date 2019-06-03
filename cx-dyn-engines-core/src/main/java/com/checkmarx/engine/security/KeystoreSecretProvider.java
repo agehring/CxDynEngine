@@ -45,7 +45,7 @@ import com.google.common.base.Strings;
 /**
  * SecretProvider backed by Java KeyStore.
  * 
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  */
 public class KeystoreSecretProvider implements SecretProvider {

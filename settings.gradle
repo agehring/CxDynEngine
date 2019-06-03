@@ -1,3 +1,12 @@
+pluginManagement {
+	repositories {
+        mavenLocal()
+		jcenter()
+        mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
 rootProject.name = 'cx-dyn-engines-parent'
 
 include 'cx-dyn-engines-core'

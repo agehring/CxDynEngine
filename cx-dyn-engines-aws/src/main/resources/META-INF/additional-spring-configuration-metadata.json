@@ -1,0 +1,99 @@
+{"groups": [
+  {
+    "name": "cx-aws-engine",
+    "type": "com.checkmarx.engine.aws.AwsEngineConfig",
+    "sourceType": "com.checkmarx.engine.aws.AwsEngineConfig",
+    "description": "Configuration for AWS dynamic engine properties"
+  }
+],"properties": [
+  {
+    "name": "cx-aws-engine.assignPublicIP",
+    "type": "java.lang.Boolean",
+    "description": "If 'true' assign a public IP when provisioning a dynamic engine"
+  },
+  {
+    "name": "cx-aws-engine.cxEngineTimeoutSec",
+    "type": "java.lang.Integer",
+    "description": "Timeout for provisioning a new engine server"
+  },
+  {
+    "name": "cx-aws-engine.cxVersion",
+    "type": "java.lang.String",
+    "description": "CxSAST version tag"
+  },
+  {
+    "name": "cx-aws-engine.iamProfile",
+    "type": "java.lang.String",
+    "description": "AWS iam profile to use for engine server"
+  },
+  {
+    "name": "cx-aws-engine.imageId",
+    "type": "java.lang.String",
+    "description": "AWS AMI image ID to provision for engine servers"
+  },
+  {
+    "name": "cx-aws-engine.keyName",
+    "type": "java.lang.String",
+    "description": "AWS key name used to provision engine server"
+  },
+  {
+    "name": "cx-aws-engine.launchTimeoutSec",
+    "type": "java.lang.Integer",
+    "description": "A description for 'cx-aws-engine.launchTimeoutSec'"
+  },
+  {
+    "name": "cx-aws-engine.monitorPollingIntervalSecs",
+    "type": "java.lang.Integer",
+    "description": "A description for 'cx-aws-engine.monitorPollingIntervalSecs'"
+  },
+  {
+    "name": "cx-aws-engine.securityGroup",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.securityGroup'"
+  },
+  {
+    "name": "cx-aws-engine.subnetId",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.subnetId'"
+  },
+  {
+    "name": "cx-aws-engine.terminateOnStop",
+    "type": "java.lang.Boolean",
+    "description": "A description for 'cx-aws-engine.terminateOnStop'"
+  },
+  {
+    "name": "cx-aws-engine.usePublicUrlForCx",
+    "type": "java.lang.Boolean",
+    "description": "A description for 'cx-aws-engine.usePublicUrlForCx'"
+  },
+  {
+    "name": "cx-aws-engine.usePublicUrlForMonitor",
+    "type": "java.lang.Boolean",
+    "description": "A description for 'cx-aws-engine.usePublicUrlForMonitor'"
+  },
+  {
+    "name": "cx-aws-engine.engineSizeMap",
+    "type": "java.util.Map<java.lang.String,java.lang.String>",
+    "description": "A description for 'cx-aws-engine.engineSizeMap.S'"
+  },
+  {
+    "name": "cx-aws-engine.tagMap",
+    "type": "java.util.Map<java.lang.String,java.lang.String>",
+    "description": "A description for 'cx-aws-engine.engineTagMap'"
+  },
+  {
+    "name": "cx-aws-engine.instanceExpireIntervalSecs",
+    "type": "java.lang.Integer",
+    "description": "A description for 'cx-aws-engine.instanceExpireIntervalSecs'"
+  },
+  {
+    "name": "cx-aws-engine.scriptOnLaunch",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.subnetId'"
+  },
+  {
+    "name": "cx-aws-engine.scriptOnTerminate",
+    "type": "java.lang.String",
+    "description": "A description for 'cx-aws-engine.subnetId'"
+  }
+]}

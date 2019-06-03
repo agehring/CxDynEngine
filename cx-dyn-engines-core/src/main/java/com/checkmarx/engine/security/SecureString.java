@@ -51,7 +51,7 @@ import java.util.Arrays;
  * Important for handing passwords.
  * 
  * @author cam
- * @author rjgeyer
+ * @author randy@checkmarx.comer
  * 
  *         from:
  *         https://github.com/OWASP/passfault/blob/master/core/src/main/java/org/owasp/passfault/impl/SecureString.java

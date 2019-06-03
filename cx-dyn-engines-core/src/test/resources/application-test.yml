@@ -1,14 +1,3 @@
-management:
-  endpoint:    shutdown:      enabled: true    beans:      enabled: true    env:      enabled: true
-  endpoints:    web:      exposure:        include: "shutdown,beans,env,info,health"
-
-logging:
-  file: cx-engines.log
-  level:
-    com:
-      checkmarx:
-        engine: debug
-
 cx:
   cxEngineUseSSL: false           #Use http/https to monitor and register Engines with
   concurrentScanLimit: 3          #Max number of concurrent scans (Engines) that DE will manage
@@ -23,32 +12,6 @@ cx:
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
 
-cx-aws-engine:
-  assignPublicIP: true
-  cxEngineTimeoutSec: 600         #how many seconds to wait for instance to launch before considered a failure
-  cxVersion: 8.8.0-HF1
-  engineSizeMap:
-    S: t3.medium
-    M: t3.large
-    L: t3.xlarge
-  iamProfile: allow-ssm
-  imageId: ami-05245c65f7b0c5885  #AMI ID of the Engine Server
-  keyName: cx-servers             #AWS Key name for support purposes
-  launchTimeoutSec: 60            #Amount of time to wait for an instance to move out of PENDING state in AWS
-  monitorPollingIntervalSecs: 10  #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
-  scriptOnLaunch: scripts/launch.groovy
-  scriptOnTerminate: scripts/terminate.groovy
-  securityGroup: sg-a0e70bdc      #AWS Security Group to apply to launched Engines
-  subnetId: subnet-cdc39b84       #AWS Subnet ID to launch Engines into
-  tagMap:
-    client: abc
-    component: cx-de
-    owner: Randy
-  terminateOnStop: true
-  usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
-  usePublicUrlForMonitor: true    #DE will monitor if an Engine is up and running based on Public or Private IP
-
-  
 cx-engine:
   engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
   enginePrefix: cx-engine         #Prefix given to naming the instance within the cloud provider

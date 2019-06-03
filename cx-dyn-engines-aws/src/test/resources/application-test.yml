@@ -1,6 +1,6 @@
-spring:
-  aop:
-    proxy-target-class: true      #Fix unit test issue with Spring AOP
+#spring:
+#  aop:
+#    proxy-target-class: true      #Fix unit test issue with Spring AOP
 
 cx:
   cxEngineUseSSL: false           #Use http/https to monitor and register Engines with
@@ -41,7 +41,6 @@ cx-aws-engine:
   usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: true    #DE will monitor if an Engine is up and running based on Public or Private IP
 
-  
 cx-engine:
   engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
   enginePrefix: cx-engine         #Prefix given to naming the instance within the cloud provider

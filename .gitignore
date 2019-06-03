@@ -4,6 +4,9 @@
 archive/
 Errors/
 
+# ignore log files
+**/*.gz
+
 # common ignores
 .gradle
 /build/

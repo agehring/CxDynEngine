@@ -40,7 +40,7 @@ import com.google.common.base.Strings;
 /**
  * {@code CxEngineClient} based on Spring RestTemplate and HttpClient.
  * 
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  */
 @Component
@@ -50,11 +50,11 @@ public class CxEngineHttpClient extends BaseHttpClient implements CxEngineClient
 
 	private final RestTemplate engineClient;
 
-	public CxEngineHttpClient(RestTemplateBuilder restTemplateBuilder, CxConfig config) {
+	public CxEngineHttpClient(RestTemplateBuilder builder, CxConfig config) {
 		super(config);
 		
-		this.engineClient = getRestBuilder(restTemplateBuilder).build();
-
+		this.engineClient = super.getRestBuilder(builder).build();
+		
 		log.info("ctor(): {}", this);
 	}
 	

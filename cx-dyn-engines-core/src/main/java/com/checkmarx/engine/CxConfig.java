@@ -16,6 +16,7 @@ package com.checkmarx.engine;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.MoreObjects;
 
 @Component
@@ -25,6 +26,7 @@ public class CxConfig {
 	private final String cxEngineUrlPath = "/CxSourceAnalyzerEngineWCF/CxEngineWebServices.svc";
 	
 	private String userName;
+	@JsonIgnore
 	private String password;
 	private int concurrentScanLimit;
 	private String cxEnginePrefix = "**";
@@ -63,7 +65,7 @@ public class CxConfig {
 	}
 
 	/**
-	 * @return the prefix to append to the engine name registered with CxManager.
+	 * @return the prefix to prepend to the engine name registered with CxManager.
 	 * 			Default value is {@code '**'}.  This can be used to distinguish
 	 * 			dynamic engines from non-dynamic engines. 
 	 */

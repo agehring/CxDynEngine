@@ -23,7 +23,7 @@ import org.joda.time.DateTime;
 import com.google.common.base.MoreObjects;
 
 /**
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  */
 public class Host {

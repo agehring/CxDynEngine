@@ -20,12 +20,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import com.checkmarx.engine.domain.EngineSize;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 
 @Profile("aws")
 @Configuration
 @ConfigurationProperties(prefix="cx-aws-engine")
+@JsonIgnoreProperties("$$beanFactory")
 public class AwsEngineConfig {
 
 	private boolean assignPublicIP;
@@ -55,7 +57,7 @@ public class AwsEngineConfig {
 	/**
 	 * Maps custom EC2 tags to values
 	 */
-	private final Map<String,String> engineTagMap = Maps.newHashMap();
+	private final Map<String,String> tagMap = Maps.newHashMap();
 
 	public boolean isAssignPublicIP() {
 		return assignPublicIP;
@@ -208,7 +210,7 @@ public class AwsEngineConfig {
 	 *  	value=tag value 
 	 */
 	public Map<String, String> getTagMap() {
-		return engineTagMap;
+		return tagMap;
 	}
 
 	public String printEngineSizeMap() {
@@ -220,7 +222,7 @@ public class AwsEngineConfig {
 
 	private String printEngineTagMap() {
 		final StringBuilder sb = new StringBuilder();
-		engineTagMap.forEach((name,value) ->
+		tagMap.forEach((name,value) ->
 			sb.append(String.format("%s->%s, ", name,value)) );
 		return sb.toString().replaceAll(", $", ""); 
 	}
