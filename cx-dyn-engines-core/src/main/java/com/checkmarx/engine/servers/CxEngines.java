@@ -64,7 +64,6 @@ public interface CxEngines {
 	 */
 	void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup);
 	
-
 	/**
 	 * Stops the supplied dynamic engine.  Underlying implementation may terminate the engine.
 	 * 
@@ -80,4 +79,20 @@ public interface CxEngines {
 	 */
 	void stop(DynamicEngine engine, boolean forceTerminate);
 
+    /***
+     * Event called when scan is assigned to the supplied engine.
+     * 
+     * @param toEngine engine scan is assigned to
+     * @param scanId ID of scan assigned
+     */
+    void onScanAssigned(DynamicEngine toEngine, String scanId);
+    
+    /***
+     * Event called when scan is removed from the supplied engine.
+     * 
+     * @param toEngine engine scan is removed from 
+     * @param scanId ID of scan removed
+     */
+    void onScanRemoved(DynamicEngine fromEngine, String scanId);
+    
 }

@@ -304,8 +304,9 @@ public class EngineManager implements Runnable {
 			log.debug("trackEngineScan(): {}; {}; {}", scan, cxEngine, dynEngine);
 			
 			final long engineId = cxEngine.getId();
-			final long scanId = scan.getId();
-			dynEngine.setScanId(scanId);
+			final Long scanId = scan.getId();
+			//dynEngine.setScanId(scanId);
+			engineProvisioner.onScanAssigned(dynEngine, String.valueOf(scanId));
 			
 			cxEngines.put(engineId, dynEngine);
 			engineScans.put(scanId, engineId);
@@ -382,6 +383,7 @@ public class EngineManager implements Runnable {
 				
 				final DynamicEngine engine = cxEngines.get(engineId);
 				unRegisterEngine(engineId);
+				engineProvisioner.onScanRemoved(engine, String.valueOf(scanId));
 				pool.idleEngine(engine);
 				//engine.setState(State.IDLE);
 				

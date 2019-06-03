@@ -146,15 +146,15 @@ public class ScanQueueMonitor implements Runnable {
 
 		// only process working scans once, so we add to workingScans after processing
 		if (activeScanMap.containsKey(scanId) && !workingScans.contains(scanId)) {
-			// update active scan
-			activeScanMap.put(scanId, scan);
+            //scanWorking.add(scan);
+            //FIXME: move block engine to EngineManager by posting to a queue
+            //scanWorking.add(scan);
+            final long engineId = scan.getEngineId();
+            log.info("Scan is working, blocking engine; scanId={}; engineId={}", scanId, engineId);
+            cxClient.blockEngine(engineId);
 
-			//scanWorking.add(scan);
-			//FIXME: move block engine to EngineManager by posting to a queue
-			//scanWorking.add(scan);
-			final long engineId = scan.getEngineId();
-			log.info("Scan is working, blocking engine; scanId={}; engineId={}", scanId, engineId);
-			cxClient.blockEngine(engineId);
+            // update active scan
+			activeScanMap.put(scanId, scan);
 			workingScans.add(scanId);
 		}
 	}

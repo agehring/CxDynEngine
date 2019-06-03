@@ -161,6 +161,20 @@ public class VmwareEngines implements CxEngines {
         }
 	}
 
+    @Override
+    public void onScanAssigned(DynamicEngine toEngine, String scanId) {
+        log.debug("onScanAssigned(): {}; scanId={}", toEngine, scanId);
+
+        // TODO: implement
+    }
+
+    @Override
+    public void onScanRemoved(DynamicEngine fromEngine, String scanId) {
+        log.debug("onScanRemoved(): {}; scanId={}", fromEngine, scanId);
+
+        // TODO: implement
+    }
+
 	@Override
 	public String toString() {
 		return MoreObjects.toStringHelper(this)

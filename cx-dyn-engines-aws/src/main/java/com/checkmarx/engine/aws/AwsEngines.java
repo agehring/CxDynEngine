@@ -285,6 +285,20 @@ public class AwsEngines implements CxEngines {
 		}
 	}
 
+    @Override
+    public void onScanAssigned(DynamicEngine toEngine, String scanId) {
+        log.debug("onScanAssigned(): {}; scanId={}", toEngine, scanId);
+
+        // TODO: implement
+    }
+
+    @Override
+    public void onScanRemoved(DynamicEngine fromEngine, String scanId) {
+        log.debug("onScanRemoved(): {}; scanId={}", fromEngine, scanId);
+
+        // TODO: implement
+    }
+
 	private Instance launchEngine(final DynamicEngine engine, final String name, 
 			final String type, final Map<String, String> tags) {
 		log.debug("launchEngine(): name={}; type={}", name, type);
@@ -347,5 +361,4 @@ public class AwsEngines implements CxEngines {
 				.add("config", awsConfig)
 				.toString();
 	}
-
 }
