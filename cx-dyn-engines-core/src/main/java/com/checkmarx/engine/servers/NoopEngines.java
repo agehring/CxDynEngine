@@ -28,7 +28,7 @@ import com.google.common.collect.Lists;
  * {@code CxEngines} that does nothing.  
  * Useful for unit testing and spring context building.
  *  
- * @author rjgey
+ * @author randy@checkmarx.com
  * @see CxEngines
  *
  */

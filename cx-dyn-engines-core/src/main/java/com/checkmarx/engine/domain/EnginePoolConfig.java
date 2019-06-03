@@ -33,16 +33,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import com.checkmarx.engine.domain.EnginePool.EnginePoolEntry;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Lists;
 
 /**
  * Engine pool configuration
  * 
- * @author rjgey
+ * @author randy@checkmarx.com
  */
 @Configuration
 @ConfigurationProperties(prefix="cx-engine")
+@JsonIgnoreProperties("$$beanFactory")
 public class EnginePoolConfig {
 
 	private final List<EnginePoolEntry> pool = Lists.newArrayList();

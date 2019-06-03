@@ -1,30 +1,21 @@
-allprojects {
-    group = 'com.checkmarx'
-    version = '1.0.1-SNAPSHOT'
-
-    apply plugin: 'eclipse'
-
-    task wrapper(type: Wrapper) {
-        gradleVersion = '4.10.3'
-    }
+plugins {
+    id 'java'
+    id 'com.gradle.build-scan' version '2.3'
+    id 'org.springframework.boot' version '2.1.5.RELEASE' apply false
+    id 'io.spring.dependency-management' version '1.0.7.RELEASE' apply false
+    id 'com.gorylenko.gradle-git-properties' version '2.0.0' apply false
 }
 
 description = 'Checkmarx SAST Dynamic Engines Parent Module'
 
-buildscript {
-    ext {
-        springBootVersion = '1.5.9.RELEASE'
-        springGradleVersion = '1.0.4.RELEASE'
-    }
-    
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-    
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}") 
-        classpath("io.spring.gradle:dependency-management-plugin:${springGradleVersion}")
+allprojects {
+    group = 'com.checkmarx'
+    version = '1.1.0-SNAPSHOT'
+
+    apply plugin: 'eclipse'
+
+    wrapper {
+        gradleVersion = '5.4.1'
     }
 }
 
@@ -33,24 +24,26 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'com.gorylenko.gradle-git-properties'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-    
+
     repositories {
         mavenLocal()
+        jcenter()
         mavenCentral()
     }
-    
+
     eclipse {
         classpath {
-           downloadSources=true
-           downloadJavadoc=true
+            downloadSources=true
+            downloadJavadoc=true
         }
     }
 
     dependencies {
-        compile(
+        implementation (
             'org.springframework.boot:spring-boot-starter-web',
             'org.springframework.boot:spring-boot-starter-aop',
             'org.springframework.boot:spring-boot-starter-actuator',
@@ -61,12 +54,28 @@ subprojects {
             'joda-time:joda-time',
             'com.fasterxml.jackson.datatype:jackson-datatype-joda',
             'commons-io:commons-io:2.6',
-            'com.github.ulisesbocchio:jasypt-spring-boot-starter:1.16',
+            'com.github.ulisesbocchio:jasypt-spring-boot-starter:2.1.1',
             'org.apache.commons:commons-lang3:3.6',
-            'org.codehaus.groovy:groovy-all',
         )
-        compileOnly('org.springframework.boot:spring-boot-configuration-processor')
-        testCompile('org.springframework.boot:spring-boot-starter-test')
+        implementation ('org.codehaus.groovy:groovy-all:2.5.7') {
+            exclude group: 'org.codehaus.groovy', module: 'groovy-test-junit5'
+        }
+
+        annotationProcessor ('org.springframework.boot:spring-boot-configuration-processor')
+        testImplementation ('org.springframework.boot:spring-boot-starter-test')
+
+        runtimeOnly('org.springframework.boot:spring-boot-properties-migrator')
+
+        components {
+            withModule('org.springframework:spring-beans') {
+                allVariants {
+                    withDependencyConstraints {
+                        // Need to patch constraints because snakeyaml is an optional dependency
+                        it.findAll { it.name == 'snakeyaml' }.each { it.version { strictly '1.19' } }
+                    }
+                }
+            }
+        }
     }
 
     dependencyManagement {
@@ -82,9 +91,23 @@ subprojects {
 
     // Prevents submodule dependencies from being included in the jar itself.
     // Enable in app specific project build.gradle
-    bootRepackage {
+    bootJar {
         enabled = false
     }
+
+    // enable normal jar for all modules, will disable for app jar
+    jar {
+        enabled = true
+    }
+}
+
+buildScan {
+    // always accept the terms of service
+    termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+    termsOfServiceAgree = 'yes'
+
+    // always publish a build scan
+    publishAlways()
 }
 
 apply from: rootProject.file('gradle/profiles.gradle');

@@ -24,6 +24,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySupplier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -46,17 +47,18 @@ public abstract class BaseHttpClient {
 		this.timeoutMillis = config.getTimeoutSecs() * 1000;
 	}
 
-	protected RestTemplateBuilder getRestBuilder(RestTemplateBuilder restTemplateBuilder) {
-		return restTemplateBuilder.requestFactory(getClientHttpRequestFactory());
-	}
-	
+
+    protected RestTemplateBuilder getRestBuilder(RestTemplateBuilder builder) {
+        return builder.requestFactory(getClientHttpRequestFactory());
+    }
+    
 	/**
 	 * Creates a custom HttpClient that:
 	 *  - disables SSL host verification
 	 *  - disables cookie management
 	 *  - sets a custom user agent
 	 */
-	protected ClientHttpRequestFactory getClientHttpRequestFactory() {
+	protected ClientHttpRequestFactorySupplier getClientHttpRequestFactory() {
 		
 		try {
 			final TrustStrategy trustStrategy = TrustSelfSignedStrategy.INSTANCE;
@@ -72,7 +74,12 @@ public abstract class BaseHttpClient {
 		    	= new HttpComponentsClientHttpRequestFactory(httpClient);
 		    clientHttpRequestFactory.setConnectTimeout(timeoutMillis);
 		    clientHttpRequestFactory.setReadTimeout(timeoutMillis);
-		    return clientHttpRequestFactory;
+		    return new ClientHttpRequestFactorySupplier() {
+		        @Override
+		        public ClientHttpRequestFactory get() {
+		            return clientHttpRequestFactory;
+		        }
+		    };
 		} catch (Throwable t) {
 			final String msg = "Unable to initialize ClientHttpRequestFactory";
 			throw new RuntimeException(msg, t);

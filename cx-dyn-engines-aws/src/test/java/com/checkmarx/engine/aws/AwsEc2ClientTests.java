@@ -36,6 +36,7 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.checkmarx.engine.servers.CxEngines;
 import com.checkmarx.engine.servers.CxEngines.CxServerRole;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class AwsEc2ClientTests extends AwsSpringTest {
 	
@@ -132,7 +133,8 @@ public class AwsEc2ClientTests extends AwsSpringTest {
 	public void testListAllInstances() {
 		log.trace("testListAllInstances()");
 
-		List<Instance> instances = ec2Client.find(null, new String[0]);
+		Map<String, String> tags = Maps.newHashMap();
+		List<Instance> instances = ec2Client.find(tags);
 		assertThat(instances, is(notNullValue()));
 		assertThat(instances.isEmpty(), is(false));
 		
@@ -146,7 +148,9 @@ public class AwsEc2ClientTests extends AwsSpringTest {
 	public void testListInstances() {
 		log.trace("testListInstances()");
 
-		List<Instance> instances = ec2Client.find("cx-role", "MANAGER");
+		Map<String, String> tags = Maps.newHashMap();
+		tags.put("cx-role", "MANAGER");
+		List<Instance> instances = ec2Client.find(tags);
 		assertThat(instances, is(notNullValue()));
 		assertThat(instances.isEmpty(), is(false));
 		

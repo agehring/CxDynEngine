@@ -49,17 +49,18 @@ public class CxEngineApiClient extends BaseHttpClient implements CxEngineApi {
 	private boolean isLoggedIn;
 	private String cxVersion = "Unknown";
 
-	public CxEngineApiClient(RestTemplateBuilder restTemplateBuilder, CxConfig config) {
+	public CxEngineApiClient(RestTemplateBuilder builder, CxConfig config) {
 		super(config);
 		
-		this.sastClient = getSastBuilder(restTemplateBuilder).build();
+		this.sastClient = getSastBuilder(builder);
 
 		log.info("ctor(): {}", this);
 	}
 	
-	private RestTemplateBuilder getSastBuilder(RestTemplateBuilder restTemplateBuilder) {
-		return super.getRestBuilder(restTemplateBuilder)
-				.additionalInterceptors(new CxCookieAuthInterceptor());
+	private RestTemplate getSastBuilder(RestTemplateBuilder builder) {
+		return super.getRestBuilder(builder)
+				.additionalInterceptors(new CxCookieAuthInterceptor())
+				.build();
 	}
 	
 	protected <T,R> R execute(String operation, Request<R> request, boolean retryOn401) {
