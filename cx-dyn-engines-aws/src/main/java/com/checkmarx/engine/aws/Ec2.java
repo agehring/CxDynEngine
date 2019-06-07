@@ -97,12 +97,11 @@ public class Ec2 {
 	}
 	
 	public static boolean isRunning(@NotNull Instance instance) {
-		//final Instance instance = determineStatus(instanceId, null);
 		final InstanceState state = getState(instance);
 		return InstanceState.RUNNING.equals(state);
 	}
 
-	public static String print(@NotNull Instance instance) {
+	public static String print(Instance instance) {
 		if (instance == null) return "null";
 		
 		final String tags = printTags(instance.getTags(), false);

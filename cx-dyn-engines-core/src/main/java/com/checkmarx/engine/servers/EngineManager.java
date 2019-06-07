@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
@@ -39,8 +39,11 @@ import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.rest.CxEngineApi;
 import com.checkmarx.engine.rest.model.EngineServer;
 import com.checkmarx.engine.rest.model.ScanRequest;
+import com.checkmarx.engine.rest.model.ScanRequest.ScanStatus;
 import com.checkmarx.engine.utils.ExecutorServiceUtils;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -150,24 +153,20 @@ public class EngineManager implements Runnable {
 		scanFinishedExecutor.shutdown();
 		idleEngineExecutor.shutdown();
 		
+		terminateExecutor(managerExecutor, "manager");
+		terminateExecutor(scanQueuedExecutor, "scanQueued");
+		terminateExecutor(scanFinishedExecutor, "scanFinisher");
+		terminateExecutor(idleEngineExecutor, "idleEngine");
+	}
+	
+	private void terminateExecutor(ExecutorService executor, String name) {
+		log.debug("terminateExecutor(): name={}", name);
 		try {
-			if (!managerExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				managerExecutor.shutdownNow();
-			}
-			if (!scanQueuedExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				scanQueuedExecutor.shutdownNow();
-			}
-			if (!scanFinishedExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				scanFinishedExecutor.shutdownNow();
-			}
-			if (!idleEngineExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				idleEngineExecutor.shutdownNow();
+			if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+				executor.shutdownNow();
 			}
 		} catch (InterruptedException e) {
-			managerExecutor.shutdownNow();
-			scanQueuedExecutor.shutdownNow();
-			scanFinishedExecutor.shutdownNow();
-			idleEngineExecutor.shutdownNow();
+			executor.shutdownNow();
 		}
 	}
 	
@@ -179,6 +178,148 @@ public class EngineManager implements Runnable {
 		}
 		return size;
 	}
+	
+    public void initialize() {
+        log.trace("initialize()");
+        
+        log.info("Logging into CxManager; url={}, user={}", config.getRestUrl(), config.getUserName()); 
+        if (!cxClient.login()) {
+            throw new RuntimeException("Unable to login to CxManager, shutting down...");
+        }
+
+        checkForExistingEngines();
+        checkCxEngines();
+        registerQueuingEngine();
+    }
+    
+    public void registerQueuingEngine() {
+        log.debug("registerQueueEngine()");
+        
+        final String engineName = config.getQueueingEngineName();
+        final EngineServer engine = cxClient.blockEngine(engineName);
+
+        log.info("Queueing engine registered: {}", engine);
+    }
+    
+    /**
+     * Checks registered engines, removes idle dynamic engines
+     */
+    private void checkCxEngines() {
+        log.debug("checkCxEngines()");
+        try {
+            final List<EngineServer> engines = cxClient.getEngines();
+            engines.forEach((engine) -> {
+                boolean isDynamic = isDynamicEngine(engine);
+                log.info("CxEngine found; engine={}; isAlive={}; isBlocked={}; isDynamic={}",
+                        engine.getName(), engine.isAlive(), engine.isBlocked(), isDynamic);
+                if (isDynamic) {
+                    //FIXME: once the engine API supports engine state, add active engines to registered engine list
+                    // for now, unregister any dynamic engines found
+                    log.warn("Dynamic engine found, unregistering; engine={}; {}", engine.getName(), engine);
+                    cxClient.unregisterEngine(engine.getId());
+                }
+            });
+        } catch (HttpClientErrorException e){
+            log.error("Error while checking CxEngines; cause={}; message={}", e, e.getMessage(), e);
+            //(HttpStatusCodeException) e).getResponseBodyAsString()) -> messageDetails contains "busy (scanning)"  TODO rogue engine monitor??
+        } catch (Exception e) {
+            // log and swallow
+            log.error("Error while checking CxEngines; cause={}; message={}", e, e.getMessage(), e); 
+        }
+    }
+
+    private boolean isDynamicEngine(EngineServer engine) {
+        return engine.getName().startsWith(config.getCxEnginePrefix());
+    }
+
+    private void checkForExistingEngines() {
+        log.debug("updateHostedEngines()");
+
+        final List<DynamicEngine> provisionedEngines = engineProvisioner.listEngines();
+        provisionedEngines.forEach((engine) -> {
+            final String name = engine.getName();
+            final DynamicEngine existingEngine = pool.getEngineByName(name);
+            if (existingEngine == null) {
+                handleUnknownEngine(engine);
+            }
+            //check for active scan and reconstitute if active, otherwise add to idle pool
+            if (checkIfEngineScanning(engine)) {
+                //TODO-rjg: move pool state to EngineManager.checkIfEngineScanning
+                // rjg: figure out if engine will already exist in pool or not, and how to handle
+                pool.allocateExistingEngine(engine);
+            } else {
+                pool.idleEngine(engine);
+            }
+            pool.addExistingEngine(engine);
+        });
+    }
+
+    private void handleUnknownEngine(DynamicEngine engine) {
+        log.debug("handleUnknownEngine(): {}", engine);
+        
+        if (engine.getState().equals(State.IDLE)) {
+            log.warn("Unknown idle EC2 engine found, terminating...; {}", engine);
+            engineProvisioner.stop(engine);
+        } else {
+            // TODO: ????
+        }
+    }
+
+	/**
+	 * Checks if the supplied engine is running an active scan.
+	 * 
+	 * @param engine engine to check for scan
+	 * @return true if running a scan; otherwise false
+	 */
+    boolean checkIfEngineScanning(DynamicEngine engine) {
+        log.debug("checkIfEngineScanning(): {}", engine);
+        
+        final String engineName = engine.getName();
+        final String scanId = engine.getScanId();
+        if (Strings.isNullOrEmpty(scanId)) {
+            return false;
+        }
+        log.info("Existing engine has scan, checking Cx scan queue...; engine={}; scanId={}", engineName, scanId);
+        
+        final List<ScanRequest> queue = cxClient.getScansQueue();
+        final Optional<ScanRequest> theScan = Iterables.tryFind(queue, scan -> scanId.equals(String.valueOf(scan.getId())));
+        if (theScan.isPresent()) {
+            final ScanRequest scanRequest = theScan.get();
+            log.info("...scan found in queue. engine={}; scan={}", engineName, scanRequest);
+            if (isScanning(scanRequest)) {
+                final String cxName = computeCxEngineName(engine.getName());
+                final EngineServer cxEngine = cxClient.getEngine(cxName);
+                trackEngineScan(scanRequest, cxEngine, engine);
+                return true;
+            }
+        } else {
+            log.info("...scan does not exist in queue; engine={}; scanId={}", engineName, scanId);
+        }
+        return false;
+    }
+
+    private boolean isScanning(ScanRequest scanRequest) {
+        log.debug("isScanning(): scan={}", scanRequest);
+        return scanRequest.getStatus().equals(ScanStatus.Scanning);
+    }
+    
+    void trackEngineScan(ScanRequest scan, EngineServer cxEngine, DynamicEngine dynEngine) {
+        log.debug("trackEngineScan(): {}; {}; {}", scan, cxEngine, dynEngine);
+        
+        final long engineId = cxEngine.getId();
+        final Long scanId = scan.getId();
+        dynEngine.setScanId(String.valueOf(scanId));
+        engineProvisioner.onScanAssigned(dynEngine);
+        
+        cxEngines.put(engineId, dynEngine);
+        engineScans.put(scanId, engineId);
+        activeEngines.put(engineId, cxEngine);
+    }
+
+    private String computeCxEngineName(String name) {
+        final String prefix = config.getCxEnginePrefix(); //"**";
+        return String.format("%s%s", prefix, name);
+    }
 
 	public class ScanLauncher implements Runnable {
 		
@@ -300,28 +441,14 @@ public class EngineManager implements Runnable {
 			return cxEngine;
 		}
 
-		private void trackEngineScan(ScanRequest scan, EngineServer cxEngine, DynamicEngine dynEngine) {
-			log.debug("trackEngineScan(): {}; {}; {}", scan, cxEngine, dynEngine);
-			
-			final long engineId = cxEngine.getId();
-			final Long scanId = scan.getId();
-			//dynEngine.setScanId(scanId);
-			engineProvisioner.onScanAssigned(dynEngine, String.valueOf(scanId));
-			
-			cxEngines.put(engineId, dynEngine);
-			engineScans.put(scanId, engineId);
-			activeEngines.put(engineId, cxEngine);
-		}
-		
 		private EngineServer createEngine(String name, ScanRequest scan, String url) {
-			final String prefix = config.getCxEnginePrefix(); //"**";
-			final String engineName = String.format("%s%s", prefix, name);
+		    final String engineName = computeCxEngineName(name);
 			final int size = scan.getLoc(); 
 			
 			return new EngineServer(engineName, url, size, size, 1, false);
 		}
 
-		private boolean checkActiveEngines(EngineSize size, ScanRequest scan) {
+        private boolean checkActiveEngines(EngineSize size, ScanRequest scan) {
 			log.trace("checkActiveEngines() : size={}; {}", size, scan);
 
 			//final State state = State.SCANNING;
@@ -383,7 +510,8 @@ public class EngineManager implements Runnable {
 				
 				final DynamicEngine engine = cxEngines.get(engineId);
 				unRegisterEngine(engineId);
-				engineProvisioner.onScanRemoved(engine, String.valueOf(scanId));
+				engineProvisioner.onScanRemoved(engine);
+				engine.setScanId(null);
 				pool.idleEngine(engine);
 				//engine.setState(State.IDLE);
 				

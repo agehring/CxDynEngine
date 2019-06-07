@@ -162,15 +162,15 @@ public class VmwareEngines implements CxEngines {
 	}
 
     @Override
-    public void onScanAssigned(DynamicEngine toEngine, String scanId) {
-        log.debug("onScanAssigned(): {}; scanId={}", toEngine, scanId);
+    public void onScanAssigned(DynamicEngine toEngine) {
+        log.debug("onScanAssigned() : {}", toEngine);
 
         // TODO: implement
     }
 
     @Override
-    public void onScanRemoved(DynamicEngine fromEngine, String scanId) {
-        log.debug("onScanRemoved(): {}; scanId={}", fromEngine, scanId);
+    public void onScanRemoved(DynamicEngine fromEngine) {
+        log.debug("onScanRemoved() : {}", fromEngine);
 
         // TODO: implement
     }
@@ -215,7 +215,7 @@ public class VmwareEngines implements CxEngines {
 		
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning);
+				launchTime, isRunning, null);
 		if (isRunning) {
 			engine.setHost(createHost(name, vm));
 		}

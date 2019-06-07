@@ -52,7 +52,7 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 	private Map<State, Duration> elapsedTimes = Maps.newConcurrentMap();
 	private final long expireDurationSecs;
 	private DateTime launchTime;
-	private Long scanId;
+	private String scanId;
 	private EnginePool enginePool;
 
 	public EnginePool getEnginePool() {
@@ -77,10 +77,16 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 	
 	public static DynamicEngine fromProvisionedInstance(
 			String name, String size, long expireDurationSecs,
-			DateTime launchTime, boolean isRunning) {
+			DateTime launchTime, boolean isRunning, String scanId) {
+	    
+	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; scanId={}", 
+	            name, size, expireDurationSecs, launchTime, isRunning, scanId);
+	    
 		final DynamicEngine engine = new DynamicEngine(name, size, expireDurationSecs);
+		engine.scanId = scanId;
 		engine.launchTime = launchTime;
 		if (isRunning) {
+		    // TODO-RJG: should we pass state?
 			engine.state = State.IDLE;
 			engine.timeToExpire = engine.calcExpirationTime();
 		}
@@ -211,14 +217,14 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		return sb.toString().replaceAll(", $", "");
 	}
 
-	public Long getScanId() {
+	public String getScanId() {
 		return scanId;
 	}
 
-	public void setScanId(Long scanId) {
+	public void setScanId(String scanId) {
 		this.scanId = scanId;
 	}
-
+	
 	// name and size are only immutable properties
 	@Override
 	public int hashCode() {

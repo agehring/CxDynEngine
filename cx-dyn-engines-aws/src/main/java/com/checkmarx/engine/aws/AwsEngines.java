@@ -19,6 +19,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.validation.constraints.NotNull;
+
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,9 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Tag;
 import com.checkmarx.engine.domain.DynamicEngine;
+import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
@@ -105,6 +109,8 @@ public class AwsEngines implements CxEngines {
 		log.trace("createEngineTags(): size={}", size);
 		final Map<String, String> tags = createCxTags(CxServerRole.ENGINE, awsConfig.getCxVersion());
 		tags.put(CX_SIZE_TAG, size);
+		// set scanID to empty initially
+		tags.put(CX_SCAN_ID_TAG, "");
 		// add custom tags from configuration
 		awsConfig.getTagMap().forEach(tags::put);
 		return tags;
@@ -153,35 +159,47 @@ public class AwsEngines implements CxEngines {
 		return dynEngines;
 	}
 
-	DynamicEngine buildDynamicEngine(String name, Instance instance) {
+	DynamicEngine buildDynamicEngine(@NotNull String name, @NotNull Instance instance) {
 		final String size = lookupEngineSize(instance);
 		final DateTime launchTime = new DateTime(instance.getLaunchTime());
 		final boolean isRunning = Ec2.isRunning(instance);
+		final String scanId = lookupScanId(instance);
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning);
+				launchTime, isRunning, scanId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
+			if (Strings.isNullOrEmpty(scanId)) {
+	            engine.setState(State.IDLE);
+			} else {
+	            engine.setState(State.SCANNING);
+			}
 		}
 		return engine;
 	}
 
-	private String lookupEngineSize(Instance instance) {
-		String sizeTag = Ec2.getTag(instance, CX_SIZE_TAG);
+	private String lookupScanId(Instance instance) {
+        return Ec2.getTag(instance, CX_SCAN_ID_TAG);
+    }
+	
+    private String lookupEngineSize(Instance instance) {
+		final String sizeTag = Ec2.getTag(instance, CX_SIZE_TAG);
+        //TODO: validate instance type to size
 		if (!Strings.isNullOrEmpty(sizeTag)) return sizeTag;
 		
-		final Map<String, String> sizeMap = awsConfig.getEngineSizeMap();
-		
-		for (Entry<String,String> entry : sizeMap.entrySet()) {
+		for (Entry<String,String> entry : engineTypeMap.entrySet()) {
 			String instanceType = entry.getValue();
 			String size = entry.getKey();
 			if (instance.getInstanceType().equals(instanceType))
 				return size;
 		}
 		// if not found, return first size in map
-		return Iterables.getFirst(sizeMap.values(), "S"); 
+		final String size = Iterables.getFirst(engineTypeMap.keySet(), "S"); 
+		log.warn("Engine size tag doesn't match current settings, assuming {} engine: tag={}; instance={}", 
+		        size, sizeTag, instance.getInstanceId());
+		return size; 
 	}
-
+    
 	@Override
 	@Retryable(
 			value = { RuntimeException.class },
@@ -253,29 +271,26 @@ public class AwsEngines implements CxEngines {
 	public void stop(DynamicEngine engine, boolean forceTerminate) {
 		log.debug("stop() : {}", engine);
 
-		final String name = engine.getName();
-		Instance instance = provisionedEngines.get(name);
-		if (instance == null) {
-			throw new RuntimeException("Cannot stop engine, no instance found");
-		}
-		final String instanceId = instance.getInstanceId();
+        String action = "StoppedEngine";
+        String instanceId = null;
+        Instance instance = null;
+        boolean success = false;
+        final String name = engine.getName();
 
-		String action = "StoppedEngine";
-		boolean success = false;
-		final Stopwatch timer = Stopwatch.createStarted();
-		try {
+        final Stopwatch timer = Stopwatch.createStarted();
+        try {
+    		instance = lookupInstance(engine, "stop");
+    		instanceId = instance.getInstanceId();
 			
 			if (awsConfig.isTerminateOnStop() || forceTerminate) {	
 				action = "TerminatedEngine";
 				ec2Client.terminate(instanceId);
 				provisionedEngines.remove(name);
-				//engine.setState(State.UNPROVISIONED);
 				runScript(awsConfig.getScriptOnTerminate(), engine);
 			} else {
 				ec2Client.stop(instanceId);
 				instance = ec2Client.describe(instanceId);
 				provisionedEngines.put(name, instance);
-				//engine.setState(State.IDLE);
 			}
 			success = true;
 			
@@ -286,17 +301,55 @@ public class AwsEngines implements CxEngines {
 	}
 
     @Override
-    public void onScanAssigned(DynamicEngine toEngine, String scanId) {
-        log.debug("onScanAssigned(): {}; scanId={}", toEngine, scanId);
-
-        // TODO: implement
+    public void onScanAssigned(DynamicEngine toEngine) {
+        final String scanId = toEngine.getScanId();
+        log.debug("onScanAssigned(): scanId={}; {}", scanId, toEngine);
+        final Tag tag = new Tag(CX_SCAN_ID_TAG, scanId);
+        tagEngine(toEngine, tag);
     }
 
     @Override
-    public void onScanRemoved(DynamicEngine fromEngine, String scanId) {
-        log.debug("onScanRemoved(): {}; scanId={}", fromEngine, scanId);
-
-        // TODO: implement
+    public void onScanRemoved(DynamicEngine fromEngine) {
+        final String scanId = fromEngine.getScanId();
+        log.debug("onScanRemoved(): scanId={}; {}", scanId, fromEngine);
+        //clear engine tag
+        final Tag tag = new Tag(CX_SCAN_ID_TAG, "");
+        tagEngine(fromEngine, tag);
+    }
+    
+    Instance tagEngine(DynamicEngine engine, Tag... tags) {
+        Instance instance = lookupInstance(engine, "tag");
+        final String name = engine.getName();
+        final String instanceId = instance.getInstanceId();
+        
+        final String action = "TagEngine";
+        boolean success = false;
+        final Stopwatch timer = Stopwatch.createStarted();
+        try {
+            instance = ec2Client.updateTags(instance, tags);
+            provisionedEngines.put(name, instance);
+            success = true;
+            return instance;
+        } catch (Exception e) {
+            log.warn("Failed to tag engine; {}; cause={}; message={}", 
+                    engine, e.getCause(), e.getMessage());
+            throw e;
+        } finally {
+            log.info("action={}; success={}; name={}; id={}; elapsedTime={}ms; {}", 
+                    action, success, name, instanceId, timer.elapsed(TimeUnit.MILLISECONDS), Ec2.print(instance)); 
+        }
+    }
+    
+    private Instance lookupInstance(DynamicEngine engine, String operation) {
+        final String name = engine.getName();
+        final Instance instance = provisionedEngines.get(name);
+        if (instance == null) {
+            final String msg = String.format("Cannot %s engine, engine not found; engine=%s", 
+                    operation, name); 
+            log.warn("{}: {}", msg, engine);
+            throw new RuntimeException(msg);
+        }
+        return instance;
     }
 
 	private Instance launchEngine(final DynamicEngine engine, final String name, 

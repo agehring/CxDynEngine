@@ -51,7 +51,6 @@ public class Application {
 			ScriptingUtils.logScriptingEngines();
 			
 			service.run();
-			
 		};
 	}
 	

@@ -18,7 +18,7 @@ cx:
   queueCapacity: 100
   queueIntervalSecs: 15
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
-  restUrl: http://54.91.211.119
+  restUrl: http://54.167.7.130
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
@@ -41,8 +41,8 @@ cx-aws-engine:
   securityGroup: sg-a0e70bdc      #AWS Security Group to apply to launched Engines
   subnetId: subnet-cdc39b84       #AWS Subnet ID to launch Engines into
   tagMap:
-    client: abc
-    component: cx-de
+#    client: abc
+#    component: cx-de
     owner: Randy
   terminateOnStop: true
   usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP

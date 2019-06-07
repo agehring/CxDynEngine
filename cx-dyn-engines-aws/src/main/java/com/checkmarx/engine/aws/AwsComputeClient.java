@@ -16,7 +16,11 @@ package com.checkmarx.engine.aws;
 import java.util.List;
 import java.util.Map;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Tag;
 
 public interface AwsComputeClient {
 
@@ -28,28 +32,30 @@ public interface AwsComputeClient {
 	 * @param tags to include with the instance
 	 * @return the running EC2 instance
 	 */
-	Instance launch(String name, String instanceType, Map<String, String> tags);
+    @NotNull
+	Instance launch(@NotBlank String name, @NotBlank String instanceType, @NotNull Map<String, String> tags);
 
 	/**
 	 * Starts an EC2 instance.
 	 *  
 	 * @param instanceId to start
 	 */
-	Instance start(String instanceId);
+    @NotNull
+	Instance start(@NotBlank String instanceId);
 
 	/**
 	 * Stops an EC2 instance
 	 * 
 	 * @param instanceId to stop
 	 */
-	void stop(String instanceId);
+	void stop(@NotBlank String instanceId);
 
 	/**
 	 * Terminates an EC2 instance.
 	 * 
 	 * @param instanceId to terminate
 	 */
-	void terminate(String instanceId);
+	void terminate(@NotBlank String instanceId);
 	
 	/**
 	 * Queries AWS for EC2 instances with the supplied tag info
@@ -57,7 +63,8 @@ public interface AwsComputeClient {
 	 * @param tags Map containing tag,value 
 	 * @return list of instances matching the supplied tag
 	 */
-	List<Instance> find(Map<String, String> tags);
+    @NotNull
+	List<Instance> find(@NotNull Map<String, String> tags);
 
 	/**
 	 * Describes an EC2 instance
@@ -65,7 +72,18 @@ public interface AwsComputeClient {
 	 * @param instanceId to describe
 	 * @return the instance
 	 */
-	Instance describe(String instanceId);
+    @NotNull
+	Instance describe(@NotBlank String instanceId);
+	
+	/**
+	 * Updates the tags for the supplied EC2 instance.
+	 * 
+	 * @param instance EC2 instance to update tags on
+	 * @param tags the tags to set
+	 * @return updated Instance
+	 */
+    @NotNull
+    Instance updateTags(@NotNull Instance instance, @NotNull Tag... tags);
 	
 	/**
 	 * Returns true if the EC2 instance is provisioned.  
@@ -74,7 +92,7 @@ public interface AwsComputeClient {
 	 * @param instanceId to check
 	 * @return <code>true</code> if instance is provisioned
 	 */
-	boolean isProvisioned(String instanceId);
+	boolean isProvisioned(@NotBlank String instanceId);
 
 	/**
 	 * Returns true if the EC2 instance is running (started).  
@@ -82,11 +100,12 @@ public interface AwsComputeClient {
 	 * @param instanceId to check
 	 * @return <code>true</code> if instance is provisioned
 	 */
-	boolean isRunning(String instanceId);
+	boolean isRunning(@NotBlank String instanceId);
 
 	/**
 	 * @return the current AWS configuration
 	 */
+	@NotNull
 	AwsEngineConfig getConfig();
 
 }

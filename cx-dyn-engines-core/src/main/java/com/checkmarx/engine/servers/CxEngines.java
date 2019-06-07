@@ -28,6 +28,7 @@ public interface CxEngines {
 	public static final String CX_ROLE_TAG = "cx-role";
 	public static final String CX_VERSION_TAG = "cx-version";
 	public static final String CX_SIZE_TAG = "cx-engine-size";
+	public static final String CX_SCAN_ID_TAG = "cx-scan-id";
 	
 	/**
 	 * Checkmarx server roles, used for compute instance tagging.
@@ -85,14 +86,14 @@ public interface CxEngines {
      * @param toEngine engine scan is assigned to
      * @param scanId ID of scan assigned
      */
-    void onScanAssigned(DynamicEngine toEngine, String scanId);
+    void onScanAssigned(DynamicEngine toEngine);
     
     /***
      * Event called when scan is removed from the supplied engine.
      * 
-     * @param toEngine engine scan is removed from 
+     * @param fromEngine engine scan is removed from 
      * @param scanId ID of scan removed
      */
-    void onScanRemoved(DynamicEngine fromEngine, String scanId);
+    void onScanRemoved(DynamicEngine fromEngine);
     
 }
