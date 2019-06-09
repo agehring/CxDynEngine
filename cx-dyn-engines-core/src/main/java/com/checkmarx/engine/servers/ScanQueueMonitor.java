@@ -46,7 +46,6 @@ public class ScanQueueMonitor implements Runnable {
 	private final Map<Long,ScanRequest> activeScanMap = Maps.newHashMap();
 	private final List<Long> workingScans = Lists.newArrayList();
 	private final CxEngineApi cxClient;
-	//private final CxConfig config;
 	private final int concurrentScanLimit;
 	private final AtomicInteger concurrentScans = new AtomicInteger(0);
 
@@ -64,7 +63,6 @@ public class ScanQueueMonitor implements Runnable {
 		this.scanFinished = scanFinished;
 		this.enginePool = enginePool;
 		this.cxClient = cxClient;
-		//this.config = config;
 		this.concurrentScanLimit = config.getConcurrentScanLimit();
 	}
 
@@ -88,9 +86,14 @@ public class ScanQueueMonitor implements Runnable {
 		}
 
 	}
+	
+	public void onPreExistingScan(ScanRequest scan) {
+        log.debug("onPreExistingScan(): {}", scan);
+        activeScanMap.put(scan.getId(), scan);
+	}
 
 	private void processScan(ScanRequest scan) {
-		log.debug("processScan(): {}", scan);
+		log.debug("processScan(): {}", scan.toString(true));
 
 		final long scanId = scan.getId();
 		//if the scan loc is zero, it is not ready to determine if applicable to Dynamic Engines

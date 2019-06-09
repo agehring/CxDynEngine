@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -56,6 +58,7 @@ import com.amazonaws.services.ec2.model.TagSpecification;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.checkmarx.engine.aws.Ec2.InstanceState;
+import com.checkmarx.engine.utils.TaskManager;
 import com.checkmarx.engine.utils.TimeoutTask;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
@@ -76,10 +79,12 @@ public class AwsEc2Client implements AwsComputeClient {
 	
 	private final AmazonEC2 client;
 	private final AwsEngineConfig config;
+	private final TaskManager taskManager;
 	
-	public AwsEc2Client(@NotNull AwsEngineConfig config) {
+	public AwsEc2Client(@NotNull AwsEngineConfig config, @NotNull TaskManager taskManager) {
 		this.client = AmazonEC2ClientBuilder.defaultClient();
 		this.config = config;
+		this.taskManager = taskManager;
 
 		log.info("ctor(): {}", this);
 	}
@@ -96,7 +101,8 @@ public class AwsEc2Client implements AwsComputeClient {
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
 	@NotNull
-	public Instance launch(@NotBlank String name, @NotBlank String instanceType, @NotNull Map<String,String> tags) {
+	public Instance launch(@NotBlank String name, @NotBlank String instanceType, 
+	        @NotNull Map<String,String> tags) throws Exception {
 		log.trace("launch(): name={}; instanceType={}", name, instanceType);
 		
 		Instance instance = null;
@@ -117,19 +123,28 @@ public class AwsEc2Client implements AwsComputeClient {
 			
 			success = true;
 			return instance;
-			
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            // do not retry, so throw original exception
+		    handleLaunchException(e, instance, name);
+		    throw new InterruptedException(e.getMessage());
 		} catch (Throwable t) {
-			log.warn("Failed to launch EC2 instance; name={}; cause={}; message={}", name, t, t.getMessage());
-			if (instance != null) {
-				final String instanceId = instance.getInstanceId();
-				log.warn("Terminating failed instance launch; instanceId={}", instanceId);
-				safeTerminate(instanceId);
-			}
+		    // retry, so throw RuntimeException
+		    handleLaunchException(t, instance, name);
 			throw new RuntimeException("Failed to launch EC2 instance", t);
 		} finally {
 			log.info("action={}, success={}; elapsedTime={}s; {}; requestId={}", 
 					"launchInstance", success, timer.elapsed(TimeUnit.SECONDS), Ec2.print(instance), requestId);
 		}
+	}
+	
+	private void handleLaunchException(Throwable t, Instance instance, String name) {
+        log.warn("Failed to launch EC2 instance; name={}; cause={}; message={}", 
+                name, t, t.getMessage());
+        if (instance != null) {
+            final String instanceId = instance.getInstanceId();
+            log.warn("Terminating failed instance launch; instanceId={}", instanceId);
+            safeTerminate(instanceId);
+        }
 	}
 
 	@NotNull
@@ -176,11 +191,11 @@ public class AwsEc2Client implements AwsComputeClient {
 	
 	@Override
 	@Retryable(
-			value = { RuntimeException.class },
+			value = { AmazonClientException.class },
 					maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 					backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
 	@NotNull
-	public Instance start(@NotBlank String instanceId) {
+	public Instance start(@NotBlank String instanceId) throws Exception {
 		log.trace("start(): instanceId={}", instanceId);
 		
 		try {
@@ -200,8 +215,12 @@ public class AwsEc2Client implements AwsComputeClient {
 		} catch (AmazonClientException e) {
 			log.warn("Failed to start EC2 instance; instanceId={}; cause={}; message={}", 
 					instanceId, e, e.getMessage());
-			throw new RuntimeException("Failed to start EC2 instance", e);
-		}
+			throw e;
+		} catch (InterruptedException e) {
+            log.warn("Failed to start EC2 instance; instanceId={}; cause={}; message={}", 
+                    instanceId, e, e.getMessage());
+            throw e;
+        }
 	}
 	
 	@Override
@@ -264,7 +283,7 @@ public class AwsEc2Client implements AwsComputeClient {
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
 	@NotNull
 	public List<Instance> find(@NotNull Map<String, String> tags) {
-		log.trace("list(): tag={}", tags);
+		log.trace("find(): tag={}", tags);
 		
 		try {
 			final List<Instance> allInstances = Lists.newArrayList();
@@ -284,7 +303,7 @@ public class AwsEc2Client implements AwsComputeClient {
 			for (Reservation reservation : result.getReservations()) {
 				allInstances.addAll(reservation.getInstances());
 			}
-			logResult(result, "", "findInstances", false);
+			logResult(result, "", "findInstances", true);
 			log.debug("action=findInstances; tags={}; found={}", tags, allInstances.size());
 			
 			return allInstances;
@@ -329,16 +348,18 @@ public class AwsEc2Client implements AwsComputeClient {
 	 * @param instanceId
 	 * @param skipState state to avoid, can be null
 	 * @return instance or <null/> if not valid
+	 * @throws InterruptedException when interrupted while waiting for pending state
 	 * @throws RuntimeException if unable to determine status before timeout
 	 */
 	@NotNull
-	private Instance waitForPendingState(@NotBlank String instanceId, InstanceState skipState) {
+	private Instance waitForPendingState(@NotBlank String instanceId, InstanceState skipState) throws Exception {
 		log.trace("waitForPendingState() : instanceId={}; skipState={}", instanceId, skipState);
 		
 		long sleepMs = config.getMonitorPollingIntervalSecs() * 1000;
 		
 		final TimeoutTask<Instance> task = 
-				new TimeoutTask<>("waitForState", config.getLaunchTimeoutSec(), TimeUnit.SECONDS);
+				new TimeoutTask<>("waitForState-"+instanceId, config.getLaunchTimeoutSec(), 
+				        TimeUnit.SECONDS, taskManager);
 		try {
 			return task.execute(() -> {
 				TimeUnit.MILLISECONDS.sleep(sleepMs);
@@ -348,8 +369,8 @@ public class AwsEc2Client implements AwsComputeClient {
 					log.trace("state={}, waiting to refresh; instanceId={}; sleep={}ms", 
 							state, instanceId, sleepMs); 
 					if (Thread.currentThread().isInterrupted()) {
-						log.info("waitForPendingState(): thread interrupted, exiting");
-						break;
+					    final String msg = "waitForPendingState() interrupted, exiting"; 
+						throw new InterruptedException(msg);
 					}
 					TimeUnit.MILLISECONDS.sleep(sleepMs);
 					instance = describe(instanceId);
@@ -357,25 +378,29 @@ public class AwsEc2Client implements AwsComputeClient {
 				}
 				return instance;
 			});
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            log.warn("Failed to determine instance state due to interruption; instanceId={}; message={}", 
+                    instanceId, e.getMessage());
+            throw e;
 		} catch (TimeoutException e) {
 			log.warn("Failed to determine instance state due to timeout; instanceId={}; message={}", 
 					instanceId, e.getMessage());
 			throw new RuntimeException("Timeout waiting for instance state", e);
-		} catch (Throwable t) {
+		} catch (Exception e) {
 			log.warn("Failed to determine instance state; instanceId={}; cause={}; message={}", 
-					instanceId, t, t.getMessage());
-			throw new RuntimeException("Failed to determine instance state", t);
+					instanceId, e, e.getMessage());
+			throw e;
 		}
 	}
 	
 	@Override
-	public boolean isProvisioned(@NotBlank String instanceId) {
+	public boolean isProvisioned(@NotBlank String instanceId) throws Exception {
 		final Instance instance = waitForPendingState(instanceId, null);
 		return Ec2.isProvisioned(instance);
 	}
 
 	@Override
-	public boolean isRunning(@NotBlank String instanceId) {
+	public boolean isRunning(@NotBlank String instanceId) throws Exception {
 		final Instance instance = waitForPendingState(instanceId, null);
 		return Ec2.isRunning(instance);
 	}

@@ -215,7 +215,7 @@ public class VmwareEngines implements CxEngines {
 		
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning, null);
+				launchTime, isRunning, null, null);
 		if (isRunning) {
 			engine.setHost(createHost(name, vm));
 		}

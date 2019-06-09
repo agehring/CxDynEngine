@@ -30,6 +30,7 @@ import com.checkmarx.engine.rest.CxEngineApi;
 import com.checkmarx.engine.servers.CxEngines;
 import com.checkmarx.engine.servers.EngineManager;
 import com.checkmarx.engine.servers.ScanQueueMonitor;
+import com.checkmarx.engine.utils.TaskManager;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 
 /**
@@ -72,26 +73,28 @@ public class CoreApplicationConfig {
 		return builder.build();
 	}
 	
+    @Bean
+    public ScanQueueMonitor queueMonitor(
+            CxConfig config,
+            CxEngineApi cxClient,
+            EnginePool enginePool,
+            ScanQueue scansQueued, 
+            ScanQueue scansFinished) {
+        return new ScanQueueMonitor(scansQueued.getQueue(), scansFinished.getQueue(), enginePool, cxClient, config);
+    }
+    
 	@Bean
 	public EngineManager engineManager(
 			CxConfig config,
 			EnginePool enginePool,
 			CxEngineApi cxClient,
 			CxEngines engineProvisioner,
+			TaskManager taskManager,
+			ScanQueueMonitor scanQueueMonitor,
 			ScanQueue scansQueued, ScanQueue scansFinished) {
 		
-		return new EngineManager(config, enginePool, cxClient, engineProvisioner, 
-						scansQueued.getQueue(), scansFinished.getQueue());
-	}
-	
-	@Bean
-	public ScanQueueMonitor queueMonitor(
-			CxConfig config,
-			CxEngineApi cxClient,
-			EnginePool enginePool,
-			ScanQueue scansQueued, 
-			ScanQueue scansFinished) {
-		return new ScanQueueMonitor(scansQueued.getQueue(), scansFinished.getQueue(), enginePool, cxClient, config);
+		return new EngineManager(config, enginePool, cxClient, engineProvisioner, taskManager, 
+		        scanQueueMonitor, scansQueued.getQueue(), scansFinished.getQueue());
 	}
 	
 }

@@ -113,10 +113,12 @@ public class Ec2 {
 				.add("imageId", instance.getImageId())
 				.add("privateIp", instance.getPrivateIpAddress())
 				.add("publicIp", instance.getPublicIpAddress())
-				.add("launchTime", instance.getLaunchTime())
+				.add("launchTime", instance.getLaunchTime().toInstant().toString())
 				.add("tags", "[" + tags + "]")
 				.toString();
 	}
+	
+	
 	
 	public static String printTags(@NotNull List<Tag> tags, boolean includeName) {
 		final StringBuilder sb = new StringBuilder();

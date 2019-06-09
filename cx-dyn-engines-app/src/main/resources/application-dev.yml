@@ -1,13 +1,17 @@
 management:
   endpoint:    shutdown:      enabled: true    beans:      enabled: true    env:      enabled: true
-  endpoints:    web:      exposure:        include: "shutdown,beans,env,info,health"
+  endpoints:    web:      exposure:        include: "shutdown,beans,env,info,health,loggers"
 
 logging:
   file: cx-engines.log
   level:
     com:
       checkmarx:
-        engine: debug
+        engine: INFO
+    org:
+      apache:
+        http: INFO
+      springframework: INFO
 
 cx:
   cxEngineUseSSL: false           #Use http/https to monitor and register Engines with
@@ -18,7 +22,7 @@ cx:
   queueCapacity: 100
   queueIntervalSecs: 15
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
-  restUrl: http://54.167.7.130
+  restUrl: http://54.84.164.197
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password

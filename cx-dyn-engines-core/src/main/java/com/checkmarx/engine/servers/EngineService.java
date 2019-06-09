@@ -13,9 +13,7 @@
  ******************************************************************************/
 package com.checkmarx.engine.servers;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +27,7 @@ import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.EnginePool;
 import com.checkmarx.engine.rest.CxEngineApi;
 import com.checkmarx.engine.utils.ExecutorServiceUtils;
-import com.google.common.collect.Lists;
+import com.checkmarx.engine.utils.TaskManager;
 
 @Component
 public class EngineService implements Runnable {
@@ -42,15 +40,16 @@ public class EngineService implements Runnable {
 
 	private final ExecutorService engineManagerExecutor;
 	private final ScheduledExecutorService scanQueueExecutor;
-	private final List<Future<?>> tasks = Lists.newArrayList();
+	private final TaskManager taskManager;
 
 	public EngineService(CxEngineApi cxClient, CxConfig config, ScanQueueMonitor scanQueueMonitor, 
-			EngineManager engineManager, EnginePool enginePool) {
+			EngineManager engineManager, EnginePool enginePool, TaskManager taskManager) {
 		this.config = config;
 		this.scanQueueMonitor = scanQueueMonitor;
 		this.engineManager = engineManager;
 		this.engineManagerExecutor = ExecutorServiceUtils.buildSingleThreadExecutorService("eng-service-%d", true);
 		this.scanQueueExecutor = ExecutorServiceUtils.buildScheduledExecutorService("queue-mon-%d", true);
+		this.taskManager = taskManager;
 		
 		log.info("ctor(): {}", this.config);
 	}
@@ -65,10 +64,11 @@ public class EngineService implements Runnable {
 		    engineManager.initialize();
 		    
 			log.info("Launching EngineManager...");
-			tasks.add(engineManagerExecutor.submit(engineManager));
+			taskManager.addTask("EngineManager", engineManagerExecutor.submit(engineManager));
 			
 			log.info("Launching ScanQueueMonitor; pollingInterval={}s", pollingInterval);
-			tasks.add(scanQueueExecutor.scheduleAtFixedRate(scanQueueMonitor, 0L, pollingInterval, TimeUnit.SECONDS));
+			taskManager.addTask("ScanQueueMonitor", 
+			        scanQueueExecutor.scheduleAtFixedRate(scanQueueMonitor, 0L, pollingInterval, TimeUnit.SECONDS));
 
 		} catch (Throwable t) {
 			log.error("Error occurred while launching Engine services, shutting down; cause={}; message={}", 
@@ -86,24 +86,10 @@ public class EngineService implements Runnable {
 	private void shutdown() {
 		log.info("shutdown()");
 
-		engineManager.stop();
-		
-		tasks.forEach((task) -> {
-			task.cancel(true);
-		});
-		engineManagerExecutor.shutdown();
-		scanQueueExecutor.shutdown();
-		try {
-			if (!engineManagerExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				engineManagerExecutor.shutdownNow();
-			}
-			if (!scanQueueExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-				scanQueueExecutor.shutdownNow();
-			}
-		} catch (InterruptedException e) {
-			engineManagerExecutor.shutdownNow();
-			scanQueueExecutor.shutdownNow();
-		}
+		taskManager.shutdown();
+		// taskManager will shutdown executors and cancel all tasks
+		//engineManagerExecutor.shutdown();
+		//scanQueueExecutor.shutdown();
 	}
 	
 }

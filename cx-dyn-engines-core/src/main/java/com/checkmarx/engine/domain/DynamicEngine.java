@@ -53,6 +53,7 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 	private final long expireDurationSecs;
 	private DateTime launchTime;
 	private String scanId;
+	private String engineId;
 	private EnginePool enginePool;
 
 	public EnginePool getEnginePool() {
@@ -77,13 +78,14 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 	
 	public static DynamicEngine fromProvisionedInstance(
 			String name, String size, long expireDurationSecs,
-			DateTime launchTime, boolean isRunning, String scanId) {
+			DateTime launchTime, boolean isRunning, String scanId, String engineId) {
 	    
-	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; scanId={}", 
-	            name, size, expireDurationSecs, launchTime, isRunning, scanId);
+	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; scanId={}; engineId={}", 
+	            name, size, expireDurationSecs, launchTime, isRunning, scanId, engineId);
 	    
 		final DynamicEngine engine = new DynamicEngine(name, size, expireDurationSecs);
 		engine.scanId = scanId;
+		engine.engineId = engineId;
 		engine.launchTime = launchTime;
 		if (isRunning) {
 		    // TODO-RJG: should we pass state?
@@ -225,7 +227,15 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		this.scanId = scanId;
 	}
 	
-	// name and size are only immutable properties
+	public String getEngineId() {
+        return engineId;
+    }
+
+    public void setEngineId(String engineId) {
+        this.engineId = engineId;
+    }
+
+    // name and size are only immutable properties
 	@Override
 	public int hashCode() {
 		return Objects.hash(name, size);
@@ -253,16 +263,22 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 				.add("size", size)
 				.add("state", state)
 				.add("elapsedTime", getElapsedTime().getStandardSeconds())
-				.add("launchTime", launchTime)
+				.add("launchTime", printInstance(launchTime))
 				.add("runTime", getRunTime().getStandardSeconds())
-				.add("currentStateTime", currentStateTime)
+				.add("currentStateTime", printInstance(currentStateTime))
 				.add("expireDurationSecs", expireDurationSecs)
 				.add("timeToExpire", timeToExpire)
 				.add("scanId", scanId)
+                .add("engineId", engineId)
 				.add("host", host)
 				.add("elapsedTimes", "[" + printElapsedTimes() + "]")
 				//.omitNullValues()
 				.toString();
 	}
+
+    private Object printInstance(DateTime time) {
+        if (time == null) return null;
+        return time.toInstant();
+    }
 
 }

@@ -35,23 +35,30 @@ public class TimeoutTask<T> {
 	
 	private static final Logger log = LoggerFactory.getLogger(TimeoutTask.class);
 
-	private final static ExecutorService executor = ExecutorServiceUtils.buildPooledExecutorService(20, "eng-timer-%d", false);
-
 	private final String taskName;
 	private final int timeout;
 	private final TimeUnit timeUnit;
+	private final TaskManager taskManager;
+	private final ExecutorService executor;
 	
-	public TimeoutTask(String taskName, int timeout, TimeUnit timeUnit) {
+	public TimeoutTask(String taskName, int timeout, TimeUnit timeUnit, TaskManager taskManager) {
 		this.taskName = taskName;
 		this.timeout = timeout;
 		this.timeUnit = timeUnit;
+		this.taskManager = taskManager;
+		this.executor = taskManager.getTimeoutExecutor();
 	}
 	
 	public T execute(Callable<T> task) throws InterruptedException, ExecutionException, TimeoutException {
 		log.trace("execute(): task={}; timeout={}; timeUnit={}", taskName, timeout, timeUnit);
 		final Future<T> future = executor.submit(task);
+		taskManager.addTask(taskName, future);
 		try {
 			return future.get(timeout, timeUnit);
+        } catch (InterruptedException e) {
+            log.warn("InterruptedException during TimeoutTask; task={}", taskName);
+            future.cancel(true);
+            throw e;
 		} catch (TimeoutException e) {
 			log.warn("TimeoutException during TimeoutTask; task={}", taskName);
 			future.cancel(true);
@@ -60,9 +67,10 @@ public class TimeoutTask<T> {
 			final Throwable t = e.getCause();
 			log.warn("ExecutionException during TimeoutTask; task={}; cause={}; message={}", 
 					taskName, t, t.getMessage());
+            future.cancel(true);
 			throw e;
 		} finally {
-			//executor.shutdownNow();
+			taskManager.removeTask(taskName, future);
 		}
 	}
 

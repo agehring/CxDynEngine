@@ -31,17 +31,20 @@ public interface AwsComputeClient {
 	 * @param instanceType of EC2 instance, e.g. m4.large
 	 * @param tags to include with the instance
 	 * @return the running EC2 instance
+	 * @throws Exception 
 	 */
     @NotNull
-	Instance launch(@NotBlank String name, @NotBlank String instanceType, @NotNull Map<String, String> tags);
+	Instance launch(@NotBlank String name, @NotBlank String instanceType, @NotNull Map<String, String> tags) throws Exception;
 
 	/**
 	 * Starts an EC2 instance.
 	 *  
 	 * @param instanceId to start
+	 * @throws InterruptedException if interrupted while waiting for instance to start
+	 * @throws Exception 
 	 */
     @NotNull
-	Instance start(@NotBlank String instanceId);
+	Instance start(@NotBlank String instanceId) throws InterruptedException, Exception;
 
 	/**
 	 * Stops an EC2 instance
@@ -91,16 +94,20 @@ public interface AwsComputeClient {
 	 * 
 	 * @param instanceId to check
 	 * @return <code>true</code> if instance is provisioned
+	 * @throws InterruptedException when interrupted while waiting for pending state
+	 * @throws Exception 
 	 */
-	boolean isProvisioned(@NotBlank String instanceId);
+	boolean isProvisioned(@NotBlank String instanceId) throws InterruptedException, Exception;
 
 	/**
 	 * Returns true if the EC2 instance is running (started).  
 	 * 
 	 * @param instanceId to check
 	 * @return <code>true</code> if instance is provisioned
+	 * @throws InterruptedException when interrupted while state is pending
+	 * @throws Exception 
 	 */
-	boolean isRunning(@NotBlank String instanceId);
+	boolean isRunning(@NotBlank String instanceId) throws InterruptedException, Exception;
 
 	/**
 	 * @return the current AWS configuration

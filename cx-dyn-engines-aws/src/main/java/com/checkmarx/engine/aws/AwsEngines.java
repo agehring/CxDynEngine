@@ -16,7 +16,9 @@ package com.checkmarx.engine.aws;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.validation.constraints.NotNull;
@@ -38,8 +40,8 @@ import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
 import com.checkmarx.engine.rest.CxEngineClient;
 import com.checkmarx.engine.servers.CxEngines;
-import com.checkmarx.engine.utils.ExecutorServiceUtils;
 import com.checkmarx.engine.utils.ScriptRunner;
+import com.checkmarx.engine.utils.TaskManager;
 import com.checkmarx.engine.utils.TimeoutTask;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
@@ -60,14 +62,13 @@ public class AwsEngines implements CxEngines {
 
 	private static final Logger log = LoggerFactory.getLogger(AwsEngines.class);
 	
-	//TODO: inject scripting ExecutorService via constructor
-	private final ExecutorService executor = ExecutorServiceUtils.buildPooledExecutorService(20, "eng-scripts-%d", false);
-
 	private final AwsEngineConfig awsConfig;
 	private final EnginePoolConfig poolConfig;
 	private final AwsComputeClient ec2Client;
 	private final CxEngineClient engineClient;
+	private final TaskManager taskManager;
 	private final int pollingMillis;
+    private final ExecutorService executor;
 
 	/**
 	 * Maps engine name to EC2 instance; key=engine name
@@ -84,14 +85,17 @@ public class AwsEngines implements CxEngines {
 	public AwsEngines(
 			EnginePoolConfig poolConfig,
 			AwsComputeClient awsClient, 
-			CxEngineClient engineClient) {
+			CxEngineClient engineClient,
+			TaskManager taskManager) {
 		
 		this.poolConfig = poolConfig;
 		this.ec2Client = awsClient;
 		this.awsConfig = awsClient.getConfig(); 
 		this.engineClient = engineClient;
+		this.taskManager = taskManager;
 		this.engineTypeMap = awsConfig.getEngineSizeMap();
 		this.pollingMillis = awsConfig.getMonitorPollingIntervalSecs() * 1000;
+		this.executor = taskManager.getExecutor("EngineScripts", "eng-scripts-%d", false);
 		
 		log.info("ctor(): {}", this);
 	}
@@ -164,9 +168,10 @@ public class AwsEngines implements CxEngines {
 		final DateTime launchTime = new DateTime(instance.getLaunchTime());
 		final boolean isRunning = Ec2.isRunning(instance);
 		final String scanId = lookupScanId(instance);
+		final String engineId = lookupEngineId(instance);
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning, scanId);
+				launchTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
 			if (Strings.isNullOrEmpty(scanId)) {
@@ -182,6 +187,10 @@ public class AwsEngines implements CxEngines {
         return Ec2.getTag(instance, CX_SCAN_ID_TAG);
     }
 	
+    private String lookupEngineId(Instance instance) {
+        return Ec2.getTag(instance, CX_ENGINE_ID_TAG);
+    }
+    
     private String lookupEngineSize(Instance instance) {
 		final String sizeTag = Ec2.getTag(instance, CX_SIZE_TAG);
         //TODO: validate instance type to size
@@ -205,7 +214,7 @@ public class AwsEngines implements CxEngines {
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) {
+	public void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) throws InterruptedException {
 		log.debug("launch(): {}; size={}; wait={}", engine, size, waitForSpinup);
 		
 		findEngines();
@@ -248,18 +257,25 @@ public class AwsEngines implements CxEngines {
 			
 			//engine.setState(State.IDLE);
 			success = true;
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            log.warn("Error occurred while launching AWS EC2 instance; name={}; {}", name, engine, e);
+            handleLaunchException(instanceId, e);
+            throw new InterruptedException(e.getMessage());
 		} catch (Throwable e) {
 			log.error("Error occurred while launching AWS EC2 instance; name={}; {}", name, engine, e);
-			if (!Strings.isNullOrEmpty(instanceId)) {
-				log.warn("Terminating instance due to error; instanceId={}", instanceId);
-				ec2Client.terminate(instanceId);
-				instance = null;
-				throw new RuntimeException("Error launching engine", e);
-			}
+            handleLaunchException(instanceId, e);
+            throw new RuntimeException("Error launching engine", e);
 		} finally {
 			log.info("action=LaunchedEngine; success={}; name={}; id={}; elapsedTime={}s; {}", 
 					success, name, instanceId, timer.elapsed(TimeUnit.SECONDS), Ec2.print(instance)); 
 		}
+	}
+	
+	private void handleLaunchException(String instanceId, Throwable e) {
+        if (!Strings.isNullOrEmpty(instanceId)) {
+            log.warn("Terminating instance due to error; instanceId={}", instanceId);
+            ec2Client.terminate(instanceId);
+        }
 	}
 	
 	@Override
@@ -303,18 +319,22 @@ public class AwsEngines implements CxEngines {
     @Override
     public void onScanAssigned(DynamicEngine toEngine) {
         final String scanId = toEngine.getScanId();
-        log.debug("onScanAssigned(): scanId={}; {}", scanId, toEngine);
+        final String engineId = toEngine.getEngineId();
+        log.debug("onScanAssigned(): scanId={}; engineId={}; {}", scanId, engineId, toEngine);
         final Tag tag = new Tag(CX_SCAN_ID_TAG, scanId);
-        tagEngine(toEngine, tag);
+        final Tag idTag = new Tag(CX_ENGINE_ID_TAG, engineId);
+        tagEngine(toEngine, tag, idTag);
     }
 
     @Override
     public void onScanRemoved(DynamicEngine fromEngine) {
         final String scanId = fromEngine.getScanId();
-        log.debug("onScanRemoved(): scanId={}; {}", scanId, fromEngine);
-        //clear engine tag
+        final String engineId = fromEngine.getEngineId();
+        log.debug("onScanRemoved(): scanId={}; engineId={}; {}", scanId, engineId, fromEngine);
+        //clear engine tags
         final Tag tag = new Tag(CX_SCAN_ID_TAG, "");
-        tagEngine(fromEngine, tag);
+        final Tag idTag = new Tag(CX_ENGINE_ID_TAG, "");
+        tagEngine(fromEngine, tag, idTag);
     }
     
     Instance tagEngine(DynamicEngine engine, Tag... tags) {
@@ -353,7 +373,7 @@ public class AwsEngines implements CxEngines {
     }
 
 	private Instance launchEngine(final DynamicEngine engine, final String name, 
-			final String type, final Map<String, String> tags) {
+			final String type, final Map<String, String> tags) throws Exception {
 		log.debug("launchEngine(): name={}; type={}", name, type);
 		
 		final Instance instance = ec2Client.launch(name, type, tags);
@@ -376,16 +396,22 @@ public class AwsEngines implements CxEngines {
 		log.trace("pingEngine(): host={}", host);
 		
 		final TimeoutTask<Boolean> pingTask = 
-				new TimeoutTask<>("pingEngine", awsConfig.getCxEngineTimeoutSec(), TimeUnit.SECONDS);
+				new TimeoutTask<>("pingEngine-"+host.getIp(), awsConfig.getCxEngineTimeoutSec(), 
+				        TimeUnit.SECONDS, taskManager);
 		final String ip = awsConfig.isUsePublicUrlForMonitor() ? host.getPublicIp(): host.getIp();
 		try {
 			pingTask.execute(() -> {
-				while (!engineClient.pingEngine(ip)) {
-					log.trace("Engine ping failed, waiting to retry; sleep={}ms; {}", pollingMillis, host); 
-					TimeUnit.MILLISECONDS.sleep(pollingMillis);
-				}
+			    do {
+                    log.trace("Engine ping failed, waiting to retry; sleep={}ms; {}", pollingMillis, host); 
+                    TimeUnit.MILLISECONDS.sleep(pollingMillis);
+			    } while (!engineClient.pingEngine(ip));
 				return true;
 			});
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            log.warn("Failed to ping CxEngine service; {}; cause={}; message={}", 
+                    host, e.getCause(), e.getMessage());
+            // do not retry, so throw Interrupted exception
+            throw new InterruptedException(e.getMessage());
 		} catch (Exception e) {
 			log.warn("Failed to ping CxEngine service; {}; cause={}; message={}", 
 					host, e.getCause(), e.getMessage());
@@ -402,7 +428,7 @@ public class AwsEngines implements CxEngines {
 		final ScriptRunner<DynamicEngine> runner = new ScriptRunner<DynamicEngine>();
 		if (runner.loadScript(scriptFile)) {
 			runner.bindData("engine", engine);
-			executor.submit(runner);
+			taskManager.addTask("script-"+ engine.getName(), executor.submit(runner));
 		} else {
 			log.debug("Script file not found: {}", scriptFile);
 		}
