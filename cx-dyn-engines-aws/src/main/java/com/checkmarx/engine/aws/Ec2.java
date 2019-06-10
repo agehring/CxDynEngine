@@ -97,12 +97,11 @@ public class Ec2 {
 	}
 	
 	public static boolean isRunning(@NotNull Instance instance) {
-		//final Instance instance = determineStatus(instanceId, null);
 		final InstanceState state = getState(instance);
 		return InstanceState.RUNNING.equals(state);
 	}
 
-	public static String print(@NotNull Instance instance) {
+	public static String print(Instance instance) {
 		if (instance == null) return "null";
 		
 		final String tags = printTags(instance.getTags(), false);
@@ -114,10 +113,12 @@ public class Ec2 {
 				.add("imageId", instance.getImageId())
 				.add("privateIp", instance.getPrivateIpAddress())
 				.add("publicIp", instance.getPublicIpAddress())
-				.add("launchTime", instance.getLaunchTime())
+				.add("launchTime", instance.getLaunchTime().toInstant().toString())
 				.add("tags", "[" + tags + "]")
 				.toString();
 	}
+	
+	
 	
 	public static String printTags(@NotNull List<Tag> tags, boolean includeName) {
 		final StringBuilder sb = new StringBuilder();

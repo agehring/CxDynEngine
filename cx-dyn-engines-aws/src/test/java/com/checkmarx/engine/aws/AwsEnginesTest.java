@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.joda.time.DateTime;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -31,10 +32,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Tag;
 import com.checkmarx.engine.domain.DynamicEngine;
 import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class AwsEnginesTest extends AwsSpringTest {
@@ -96,6 +99,25 @@ public class AwsEnginesTest extends AwsSpringTest {
 		assertThat(engines, is(notNullValue()));
 		
 		engines.forEach((engine) -> log.debug("{}", engine));
+	}
+	
+	@Test
+	public void testTagEngine() {
+        log.trace("testTagEngine()");
+        
+        final List<DynamicEngine> engines = awsEngines.listEngines();
+        final DynamicEngine engine = Iterables.getFirst(engines, null);
+        if (engine == null) {
+            Assert.fail("No engines currently provisioned.");
+        }
+        
+        final Tag tag = new Tag("test", "test");
+        Instance instance = awsEngines.tagEngine(engine, tag);
+        assertThat(Ec2.getTag(instance, "test"), is("test"));
+        
+        tag.setValue("");
+        instance = awsEngines.tagEngine(engine, tag);
+        assertThat(Ec2.getTag(instance, "test"), is(""));
 	}
 
 	@Test

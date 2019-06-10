@@ -6,12 +6,11 @@ logging:
   level:
     com:
       checkmarx:
-        engine: info
+        engine: INFO
     org:
       apache:
-        http: info
-      org:
-        springframework: info
+        http: INFO
+      springframework: INFO
 
 cx:
   cxEngineUseSSL: true #Use http/https to monitor and register Engines with
@@ -45,9 +44,9 @@ cx-aws-engine:
   scriptOnTerminate: scripts/terminate.groovy
   securityGroup: sg-04ed28298b8ec3106 #AWS Security Group to apply to launched Engines
   subnetId: subnet-39b72265 #AWS Subnet ID to launch Engines into
-  tagMap:
-    client: abc
-    component: dynamic-engine
+#  tagMap:
+#    client: abc
+#    component: dynamic-engine
   terminateOnStop: true
   usePublicUrlForCx: false #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: false #DE will monitor if an Engine is up and running based on Public or Private IP

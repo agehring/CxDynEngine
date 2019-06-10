@@ -17,12 +17,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class ExecutorServiceUtils {
 	
-	private ExecutorServiceUtils() {
+    private static final Logger log = LoggerFactory.getLogger(ExecutorServiceUtils.class);
+
+    private ExecutorServiceUtils() {
 		// static class
 	}
 	
@@ -46,6 +52,15 @@ public class ExecutorServiceUtils {
 		return Executors.newSingleThreadScheduledExecutor(buildThreadFactory(nameFormat, daemon));
 	}
 	
-	
-
+    public static void terminateExecutor(ExecutorService executor, String name) {
+        log.debug("terminateExecutor(): name={}", name);
+        try {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
+    }
+    
 }

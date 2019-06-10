@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.joda.time.DateTime;
+import org.joda.time.Instant;
 
 import com.checkmarx.engine.utils.ScanUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -208,7 +209,6 @@ public class ScanRequest {
 	protected MoreObjects.ToStringHelper toStringHelper() {
 		return MoreObjects.toStringHelper(this)
 				.add("id", id)
-				.add("runId", runId)
 				.add("status", getStatus())
 				.add("projectId", project.getId())
 				.add("engineId", getEngineId())
@@ -231,13 +231,17 @@ public class ScanRequest {
 				.add("stage", stage)
 				.add("teamId", teamId)
 				.add("languages", printLanguages())
-				.add("dateCreated", dateCreated)
+				.add("dateCreated", printTime(dateCreated))
 				.add("queuedOn", queuedOn)
-				.add("engineStartedOn", engineStartedOn)
+				.add("engineStartedOn", printTime(engineStartedOn))
 				.add("incremental", incremental)
 				.add("isPublic", isPublic)
 				.add("origin", origin)
 				.omitNullValues()
 				.toString();
+	}
+	
+	private Instant printTime(DateTime time) {
+	    return time == null ? null : time.toInstant();
 	}
 }

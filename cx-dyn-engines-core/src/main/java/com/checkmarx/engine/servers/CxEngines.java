@@ -28,6 +28,8 @@ public interface CxEngines {
 	public static final String CX_ROLE_TAG = "cx-role";
 	public static final String CX_VERSION_TAG = "cx-version";
 	public static final String CX_SIZE_TAG = "cx-engine-size";
+	public static final String CX_SCAN_ID_TAG = "cx-scan-id";
+    public static final String CX_ENGINE_ID_TAG = "cx-engine-id";
 	
 	/**
 	 * Checkmarx server roles, used for compute instance tagging.
@@ -61,8 +63,9 @@ public interface CxEngines {
 	 * @param size of the engine to launch
 	 * @param waitForSpinup if true, blocks until the engine process responds to requests.
 	 * 						This may take several more minutes.
+	 * @throws InterruptedException 
 	 */
-	void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup);
+	void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) throws InterruptedException;
 	
 	/**
 	 * Stops the supplied dynamic engine.  Underlying implementation may terminate the engine.
@@ -85,14 +88,14 @@ public interface CxEngines {
      * @param toEngine engine scan is assigned to
      * @param scanId ID of scan assigned
      */
-    void onScanAssigned(DynamicEngine toEngine, String scanId);
+    void onScanAssigned(DynamicEngine toEngine);
     
     /***
      * Event called when scan is removed from the supplied engine.
      * 
-     * @param toEngine engine scan is removed from 
+     * @param fromEngine engine scan is removed from 
      * @param scanId ID of scan removed
      */
-    void onScanRemoved(DynamicEngine fromEngine, String scanId);
+    void onScanRemoved(DynamicEngine fromEngine);
     
 }

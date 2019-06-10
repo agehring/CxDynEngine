@@ -68,7 +68,7 @@ public class AwsEc2ClientTests extends AwsSpringTest {
 	}
 
 	@Test
-	public void testLaunch() {
+	public void testLaunch() throws Exception {
 		log.trace("testLaunch()");
 		
 		final String name = "cx-test1";

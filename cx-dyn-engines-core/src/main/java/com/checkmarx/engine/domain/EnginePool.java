@@ -222,8 +222,16 @@ public class EnginePool {
 		}
 	}
 	
+	public void allocateExistingEngine(DynamicEngine engine) {
+        log.trace("allocateExistingEngine() : {}", engine);
+        synchronized(this) {
+            changeState(engine, State.SCANNING);
+            log.debug("Engine allocated: pool={}", this);
+        }
+	}
+	
 	public void deallocateEngine(DynamicEngine engine) {
-		log.trace("unallocateEngine() : {}", engine);
+		log.trace("deallocateEngine() : {}", engine);
 		synchronized(this) {
 			changeState(engine, State.UNPROVISIONED);
 			log.debug("Engine unallocated: pool={}", this);

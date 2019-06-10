@@ -64,14 +64,14 @@ public class NoopEngines implements CxEngines {
 	}
 
     @Override
-    public void onScanAssigned(DynamicEngine toEngine, String scanId) {
-        log.debug("onScanAssigned() : {}, scanId={}", toEngine, scanId);
+    public void onScanAssigned(DynamicEngine toEngine) {
+        log.debug("onScanAssigned() : {}", toEngine);
         // noop
     }
 
     @Override
-    public void onScanRemoved(DynamicEngine fromEngine, String scanId) {
-        log.debug("onScanRemoved() : {}, scanId={}", fromEngine, scanId);
+    public void onScanRemoved(DynamicEngine fromEngine) {
+        log.debug("onScanRemoved() : {}", fromEngine);
         // noop
     }
 
