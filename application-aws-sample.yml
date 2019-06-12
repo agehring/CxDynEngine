@@ -26,6 +26,7 @@ cx:
   timeoutSecs: 120 #HTTP client request timeout (connection and read)
   userName: xxx #Checkmarx user (must have access to register engines)
   password: xxx #Checkmarx password
+  notificationId: #ARN for notification
 
 cx-aws-engine:
   assignPublicIP: true
