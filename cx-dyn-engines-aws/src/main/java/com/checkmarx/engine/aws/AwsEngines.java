@@ -165,7 +165,7 @@ public class AwsEngines implements CxEngines {
 	 * Used for Integration test purposes only
 	 * @param instanceId
 	 */
-	public void stop(String instanceId){
+	void stop(String instanceId){
 		ec2Client.stop(instanceId);
 	}
 
