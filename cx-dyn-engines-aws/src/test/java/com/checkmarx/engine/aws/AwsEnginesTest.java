@@ -13,9 +13,10 @@
  ******************************************************************************/
 package com.checkmarx.engine.aws;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +81,11 @@ public class AwsEnginesTest extends AwsSpringTest {
 
 		awsEngines.runScript("scripts/launch.groovy", engine);
 		awsEngines.runScript("scripts/terminate.js", engine);
+	}
+
+	@Test
+	public void testStop() throws Exception {
+		awsEngines.stop("i-0f1d10be0c02ae113");
 	}
 
 	@Test

@@ -20,9 +20,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-
 import javax.validation.constraints.NotNull;
-
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,6 +159,14 @@ public class AwsEngines implements CxEngines {
 			dynEngines.add(engine);
 		});
 		return dynEngines;
+	}
+
+	/**
+	 * Used for Integration test purposes only
+	 * @param instanceId
+	 */
+	public void stop(String instanceId){
+		ec2Client.stop(instanceId);
 	}
 
 	DynamicEngine buildDynamicEngine(@NotNull String name, @NotNull Instance instance) {
