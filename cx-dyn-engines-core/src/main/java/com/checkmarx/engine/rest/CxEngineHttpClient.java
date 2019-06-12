@@ -49,12 +49,14 @@ public class CxEngineHttpClient extends BaseHttpClient implements CxEngineClient
 	private static final Logger log = LoggerFactory.getLogger(CxEngineHttpClient.class);
 
 	private final RestTemplate engineClient;
+	private final Notification notify;
 
-	public CxEngineHttpClient(RestTemplateBuilder builder, CxConfig config) {
-		super(config);
+	public CxEngineHttpClient(RestTemplateBuilder builder, CxConfig config, Notification notify) {
+		super(config, notify);
 		
 		this.engineClient = super.getRestBuilder(builder).build();
-		
+		this.notify = notify;
+
 		log.info("ctor(): {}", this);
 	}
 	

@@ -13,10 +13,7 @@
  ******************************************************************************/
 package com.checkmarx.engine.aws;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
@@ -26,6 +23,10 @@ import java.util.concurrent.TimeoutException;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -78,11 +79,14 @@ public class AwsEc2Client implements AwsComputeClient {
 	private static final Logger log = LoggerFactory.getLogger(AwsEc2Client.class);
 	
 	private final AmazonEC2 client;
+	private final AWSSimpleSystemsManagement ssmClient;
+
 	private final AwsEngineConfig config;
 	private final TaskManager taskManager;
 	
 	public AwsEc2Client(@NotNull AwsEngineConfig config, @NotNull TaskManager taskManager) {
 		this.client = AmazonEC2ClientBuilder.defaultClient();
+		this.ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
 		this.config = config;
 		this.taskManager = taskManager;
 
@@ -222,7 +226,33 @@ public class AwsEc2Client implements AwsComputeClient {
             throw e;
         }
 	}
-	
+
+
+	/**
+	 * @Override
+	 *        @Retryable(
+	 *            value = { RuntimeException.class },
+	 * 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
+	 * 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
+	 * 	public void stop(@NotBlank String instanceId) {
+	 * 		log.trace("stop(): instanceId={}", instanceId);
+	 *
+	 * 		try {
+	 * 			final StopInstancesRequest request = new StopInstancesRequest();
+	 * 			request.withInstanceIds(instanceId);
+	 *
+	 * 			final StopInstancesResult result = client.stopInstances(request);
+	 * 			logResult(result, instanceId, "stopInstance", false);
+	 *        } catch (AmazonClientException e) {
+	 * 			log.warn("Failed to stop EC2 instance; instanceId={}; cause={}; message={}",
+	 * 					instanceId, e, e.getMessage());
+	 * 			throw new RuntimeException("Failed to stop EC2 instance", e);
+	 *        }
+	 *    }
+	 *
+	 *
+	 */
+
 	@Override
 	@Retryable(
 			value = { RuntimeException.class },
@@ -232,18 +262,30 @@ public class AwsEc2Client implements AwsComputeClient {
 		log.trace("stop(): instanceId={}", instanceId);
 		
 		try {
-			final StopInstancesRequest request = new StopInstancesRequest();
-			request.withInstanceIds(instanceId);
-			
-			final StopInstancesResult result = client.stopInstances(request);
-			logResult(result, instanceId, "stopInstance", false);
+			StartAutomationExecutionRequest request = new StartAutomationExecutionRequest();
+			request.setDocumentName(config.getSsmAutomationDocument());
+			request.setParameters(Collections.singletonMap("InstanceId", Collections.singletonList(instanceId)));
+			StartAutomationExecutionResult result = ssmClient.startAutomationExecution(request);
+			String executionId = result.getAutomationExecutionId();
+
+			AutomationExecution execution = getAutomationExecution(executionId);
+			log.info(execution.getAutomationExecutionStatus());
+			// TODO: monitor In Progress -> Success
+
+			log.debug("Execution id for SSM EC2 Instance shutdown: {}", executionId);
 		} catch (AmazonClientException e) {
 			log.warn("Failed to stop EC2 instance; instanceId={}; cause={}; message={}", 
 					instanceId, e, e.getMessage());
 			throw new RuntimeException("Failed to stop EC2 instance", e);
 		}
 	}
-	
+
+	private AutomationExecution getAutomationExecution(String executionId){
+		GetAutomationExecutionRequest automationExecutionRequest = new GetAutomationExecutionRequest().withAutomationExecutionId(executionId);
+		GetAutomationExecutionResult automationExecutionResult = ssmClient.getAutomationExecution(automationExecutionRequest);
+		return automationExecutionResult.getAutomationExecution();
+	}
+
 	@Override
 	@Retryable(
 			value = { RuntimeException.class },

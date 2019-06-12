@@ -3,13 +3,13 @@ description = 'Checkmarx CxSAST Dynamic Engine AWS Library'
 dependencies {
     implementation project(':cx-dyn-engines-core')
     implementation (
-        'com.amazonaws:aws-java-sdk-ec2'
+        'com.amazonaws:aws-java-sdk-ec2',
+        'com.amazonaws:aws-java-sdk-sns',
+        'com.amazonaws:aws-java-sdk-ssm'
     )
 }
 
 jar {
-    baseName = 'cx-dyn-engines-aws'
-
     manifest {
         attributes(
             "Implementation-Title": "Checkmarx Dynamic Engines AWS Library",

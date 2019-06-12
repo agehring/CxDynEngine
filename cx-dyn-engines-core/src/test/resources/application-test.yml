@@ -9,9 +9,8 @@ cx:
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
   restUrl: http://54.91.211.119
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
-  userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
-
+  notificationId: arn:aws:sns:us-east-1:275043232443:DynamicEngines
 cx-engine:
   engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
   enginePrefix: cx-engine         #Prefix given to naming the instance within the cloud provider

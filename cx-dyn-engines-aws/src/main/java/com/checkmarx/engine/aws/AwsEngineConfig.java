@@ -43,7 +43,8 @@ public class AwsEngineConfig {
 	private boolean terminateOnStop;
 	private boolean usePublicUrlForCx = false;
 	private boolean usePublicUrlForMonitor = false;
-	
+	private String ssmAutomationDocument = "AWS-StopEC2Instance";
+
 	private String scriptOnLaunch;
 	private String scriptOnTerminate;
 
@@ -227,6 +228,14 @@ public class AwsEngineConfig {
 		return sb.toString().replaceAll(", $", ""); 
 	}
 
+	public String getSsmAutomationDocument() {
+		return ssmAutomationDocument;
+	}
+
+	public void setSsmAutomationDocument(String ssmAutomationDocument) {
+		this.ssmAutomationDocument = ssmAutomationDocument;
+	}
+
 	public String toString() {
 		return MoreObjects.toStringHelper(this)
 				.add("assignPublicIP", assignPublicIP)
@@ -245,6 +254,7 @@ public class AwsEngineConfig {
 				.add("usePublicUrlForMonitor", usePublicUrlForMonitor)
 				.add("engineSizeMap", "[" + printEngineSizeMap() +"]")
 				.add("engineTagMap", "[" + printEngineTagMap() +"]")
+				.add("ssmAutomationDocumetn", ssmAutomationDocument)
 				.toString();
 	}
 

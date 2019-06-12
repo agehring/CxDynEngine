@@ -16,6 +16,7 @@ package com.checkmarx.engine.rest;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -34,19 +35,22 @@ import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.rest.model.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
+import org.springframework.web.client.HttpServerErrorException;
 
 public abstract class BaseHttpClient {
 	
 	private static final Logger log = LoggerFactory.getLogger(BaseHttpClient.class);
+	private static final String MESSAGE_TEMPLATE = "Error occurred during operation: %s\nResponse Code: %s\nDetails: %s";
 
 	protected final int timeoutMillis;
 	protected final CxConfig config;
+	private final Notification notify;
 
-	protected BaseHttpClient(CxConfig config) {
+	protected BaseHttpClient(CxConfig config, Notification notify) {
 		this.config = config;
 		this.timeoutMillis = config.getTimeoutSecs() * 1000;
+		this.notify = notify;
 	}
-
 
     protected RestTemplateBuilder getRestBuilder(RestTemplateBuilder builder) {
         return builder.requestFactory(getClientHttpRequestFactory());
@@ -98,9 +102,13 @@ public abstract class BaseHttpClient {
 			R result = request.send();
 			success = true;
 			return result;
-		} catch (HttpClientErrorException e) {
+		} catch (HttpClientErrorException | HttpServerErrorException e) {
 			final ErrorResponse error = unmarshallError(e.getResponseBodyAsString());
 			log.warn("Cx rest call failed: request={}; status={}; {}", operation, e.getRawStatusCode(), error);
+
+			String errorMsg = String.format(MESSAGE_TEMPLATE, operation, e.getRawStatusCode(), error);
+			notify.sendNotification(config.getNotificationSubject(), errorMsg, e);
+
 			throw e;
 		} finally {
 			log.debug("Cx api call; request={}; success={}; elapsed={}ms", 

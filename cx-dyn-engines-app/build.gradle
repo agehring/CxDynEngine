@@ -5,8 +5,11 @@ dependencies {
     if (project.hasProperty("aws")) {
         implementation project(':cx-dyn-engines-aws')
     }
-    if (project.hasProperty("vmware")) {
+    else if (project.hasProperty("vmware")) {
         implementation project(':cx-dyn-engines-vmware')
+    }
+    else{ //default to aws
+        implementation project(':cx-dyn-engines-aws')
     }
 }
 
