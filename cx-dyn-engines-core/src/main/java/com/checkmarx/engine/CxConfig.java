@@ -39,7 +39,10 @@ public class CxConfig {
 	private String restUrl;
 	private int timeoutSecs = 20;
 	private String userAgent = "CxDynamicEngineManager";
-	
+	private String notificationId; //Identifier for Notification implementation (ARN/URI/UID/etc)
+	private String notificationSubject = "Dynamic Engines"; //Subject for notifications
+	private int notificationTimer = 60; //time to wait before resending
+
 	public String getUserName() {
 		return userName;
 	}
@@ -156,7 +159,31 @@ public class CxConfig {
 	public String getVersion() {
 		return getManifestVersion();
 	}
-	
+
+	public String getNotificationId() {
+		return notificationId;
+	}
+
+	public void setNotificationId(String notificationId) {
+		this.notificationId = notificationId;
+	}
+
+	public String getNotificationSubject() {
+		return notificationSubject;
+	}
+
+	public void setNotificationSubject(String notificationSubject) {
+		this.notificationSubject = notificationSubject;
+	}
+
+	public int getNotificationTimer() {
+		return notificationTimer;
+	}
+
+	public void setNotificationTimer(int notificationTimer) {
+		this.notificationTimer = notificationTimer;
+	}
+
 	private String getManifestVersion() {
 	    final Package objPackage = this.getClass().getPackage();
 	    return objPackage.getImplementationVersion();
@@ -179,6 +206,8 @@ public class CxConfig {
 				.add("timeoutSecs", timeoutSecs)
 				.add("userAgent", userAgent)
 				.add("version", getVersion())
+				.add("notificationId", notificationId)
+				.add("notificationSubject", notificationSubject)
 				.toString();
 	}
 

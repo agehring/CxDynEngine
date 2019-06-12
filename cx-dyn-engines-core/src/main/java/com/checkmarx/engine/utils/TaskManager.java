@@ -17,10 +17,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.testng.collections.Maps;
 
 /**
  * Responsible for tracking and stopping background tasks & shutting down

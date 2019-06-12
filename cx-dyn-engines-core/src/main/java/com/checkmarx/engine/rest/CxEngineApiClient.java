@@ -44,16 +44,17 @@ public class CxEngineApiClient extends BaseHttpClient implements CxEngineApi {
 	private static final String AUTH_API_URL = BASE_URL + "/auth/login";
 	private static final String ENGINES_API_URL = BASE_URL + "/sast/engineServers";
 	private static final String SCAN_REQUESTS_URL = BASE_URL + "/sast/scansQueue";
-	
 	private final RestTemplate sastClient;
+	private final Notification notify;
+
 	private boolean isLoggedIn;
 	private String cxVersion = "Unknown";
 
-	public CxEngineApiClient(RestTemplateBuilder builder, CxConfig config) {
-		super(config);
+	public CxEngineApiClient(RestTemplateBuilder builder, CxConfig config, Notification notify) {
+		super(config, notify);
 		
 		this.sastClient = getSastBuilder(builder);
-
+		this.notify = notify;
 		log.info("ctor(): {}", this);
 	}
 	
