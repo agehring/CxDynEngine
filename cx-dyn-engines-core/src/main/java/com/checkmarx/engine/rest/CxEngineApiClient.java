@@ -23,6 +23,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.checkmarx.engine.CxConfig;
@@ -39,7 +40,8 @@ import com.google.common.collect.Lists;
 public class CxEngineApiClient extends BaseHttpClient implements CxEngineApi {
 
 	private static final Logger log = LoggerFactory.getLogger(CxEngineApiClient.class);
-	
+	private static final String MESSAGE_TEMPLATE = "Error occurred during operation: %s\nResponse Code: %s";
+
 	private static final String BASE_URL = "/cxrestapi";
 	private static final String AUTH_API_URL = BASE_URL + "/auth/login";
 	private static final String ENGINES_API_URL = BASE_URL + "/sast/engineServers";
@@ -51,7 +53,7 @@ public class CxEngineApiClient extends BaseHttpClient implements CxEngineApi {
 	private String cxVersion = "Unknown";
 
 	public CxEngineApiClient(RestTemplateBuilder builder, CxConfig config, Notification notify) {
-		super(config, notify);
+		super(config);
 		
 		this.sastClient = getSastBuilder(builder);
 		this.notify = notify;
@@ -72,11 +74,13 @@ public class CxEngineApiClient extends BaseHttpClient implements CxEngineApi {
 			try {
 				result = super.execute(operation, request);
 				return result;
-			} catch (HttpClientErrorException e) {
+			} catch (HttpClientErrorException | HttpServerErrorException e) {
 				if (retryOn401 && e.getRawStatusCode() == 401) {
 					log.info("...unauthorized, logging in and retrying...");
 					login();
 				} else {
+					String errorMsg = String.format(MESSAGE_TEMPLATE, operation, e.getRawStatusCode());
+					notify.sendNotification(config.getNotificationSubject(), errorMsg, e);
 					throw e;
 				}
 			}

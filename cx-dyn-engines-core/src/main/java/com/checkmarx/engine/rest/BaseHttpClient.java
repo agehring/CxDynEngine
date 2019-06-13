@@ -40,16 +40,13 @@ import org.springframework.web.client.HttpServerErrorException;
 public abstract class BaseHttpClient {
 	
 	private static final Logger log = LoggerFactory.getLogger(BaseHttpClient.class);
-	private static final String MESSAGE_TEMPLATE = "Error occurred during operation: %s\nResponse Code: %s\nDetails: %s";
 
 	protected final int timeoutMillis;
 	protected final CxConfig config;
-	private final Notification notify;
 
-	protected BaseHttpClient(CxConfig config, Notification notify) {
+	protected BaseHttpClient(CxConfig config) {
 		this.config = config;
 		this.timeoutMillis = config.getTimeoutSecs() * 1000;
-		this.notify = notify;
 	}
 
     protected RestTemplateBuilder getRestBuilder(RestTemplateBuilder builder) {
@@ -102,12 +99,9 @@ public abstract class BaseHttpClient {
 			R result = request.send();
 			success = true;
 			return result;
-		} catch (HttpClientErrorException | HttpServerErrorException e) {
+		} catch (HttpClientErrorException e) {
 			final ErrorResponse error = unmarshallError(e.getResponseBodyAsString());
 			log.warn("Cx rest call failed: request={}; status={}; {}", operation, e.getRawStatusCode(), error);
-
-			String errorMsg = String.format(MESSAGE_TEMPLATE, operation, e.getRawStatusCode(), error);
-			notify.sendNotification(config.getNotificationSubject(), errorMsg, e);
 
 			throw e;
 		} finally {
