@@ -27,8 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
+
+import java.security.cert.CRL;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -40,6 +44,7 @@ public class AwsNotification implements Notification {
     private Map<String, LocalDateTime> activeNotification = new HashMap<>();
     private final CxConfig cxConfig;
     private static final Logger log = LoggerFactory.getLogger(AwsNotification.class);
+    private static final String CRLF = "\r\n";
 
     public AwsNotification(CxConfig cxConfig) {
         this.cxConfig = cxConfig;
@@ -48,21 +53,32 @@ public class AwsNotification implements Notification {
 
     @Override
     public void sendNotification(String subject, String message, Throwable throwable) {
+        StringBuilder msg = new StringBuilder();
         String hash = DigestUtils.sha256Hex(message);
+        msg.append(CRLF).append(message).append(CRLF);
+        if(throwable instanceof HttpStatusCodeException){
+            HttpStatusCodeException ex = (HttpStatusCodeException) throwable;
+            msg.append("HTTP Status Code: ").append(ex.getStatusCode()).append(CRLF);
+            msg.append("HTTP Response: ").append(ex.getResponseBodyAsString()).append(CRLF);
+            msg.append("HTTP Response Headers: ").append(ex.getResponseHeaders()).append(CRLF);
+        }
+        msg.append("Exception Message: ").append(ExceptionUtils.getMessage(throwable)).append(CRLF);
+        msg.append("Exception Root Cause Message: ").append(ExceptionUtils.getRootCauseMessage(throwable)).append(CRLF);
+        msg.append("Exception StackTrace: ").append(ExceptionUtils.getStackTrace(throwable)).append(CRLF);
         LocalDateTime now = LocalDateTime.now();
         if(activeNotification.containsKey(hash)){
             LocalDateTime sent = activeNotification.get(hash);
             if(now.isAfter(sent.plusMinutes(cxConfig.getNotificationTimer()))){
-                publish(subject, message);
+                publish(subject, msg.toString());
                 activeNotification.put(hash, now);
             }
             else{
-                log.debug("Message not sent: {}", message);
+                log.debug("Message not sent: {}", msg.toString());
                 log.debug("Last message sent {}", sent);
             }
         }
         else{
-            publish(subject, message);
+            publish(subject, msg.toString());
             activeNotification.put(hash, now);
         }
 
