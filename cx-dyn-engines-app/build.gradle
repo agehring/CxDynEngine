@@ -3,9 +3,11 @@ description = 'Checkmarx CxSAST Dynamic Engine App'
 dependencies {
     implementation project(':cx-dyn-engines-core')
     if (project.hasProperty("aws")) {
+        println '...including AWS module'
         implementation project(':cx-dyn-engines-aws')
     }
     else if (project.hasProperty("vmware")) {
+        println '...including VMWARE module'
         implementation project(':cx-dyn-engines-vmware')
     }
 }

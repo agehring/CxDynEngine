@@ -15,13 +15,14 @@ package com.checkmarx.engine.vmware;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,11 @@ public class VmwareEnginesTest extends VmwareSpringTest {
 	@Autowired
 	private VmwareEngines vmwareEngines;
 	
+    @BeforeClass
+    public static void init() {
+        Assume.assumeTrue(runIntegrationTests());
+    }
+    
 	@Before
 	public void setUp() throws Exception {
 		log.trace("setUp()");

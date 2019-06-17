@@ -1,7 +1,3 @@
-#spring:
-#  aop:
-#    proxy-target-class: true      #Fix unit test issue with Spring AOP
-
 cx:
   cxEngineUseSSL: false           #Use http/https to monitor and register Engines with
   concurrentScanLimit: 3          #Max number of concurrent scans (Engines) that DE will manage
