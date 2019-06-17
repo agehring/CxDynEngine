@@ -91,6 +91,15 @@ public class ScanQueueMonitor implements Runnable {
         log.debug("onPreExistingScan(): {}", scan);
         activeScanMap.put(scan.getId(), scan);
 	}
+	
+	public void onLaunchFailed(ScanRequest scan) {
+        log.debug("onPreExistingScan(): {}", scan);
+        
+        final long scanId = scan.getId();
+        if (activeScanMap.containsKey(scanId)) {
+            activeScanMap.remove(scanId);
+        }
+	}
 
 	private void processScan(ScanRequest scan) {
 		log.debug("processScan(): {}", scan.toString(true));
