@@ -402,12 +402,12 @@ public class EngineManager implements Runnable {
 				blockScan(size, scan);
 				
             } catch (InterruptedException e) {
-                log.warn("onScanQueued interrupted, exiting...");
+                log.info("onScanQueued interrupted, exiting...");
 			} catch (Throwable t) {
 				log.error("Error occurred launching scan; cause={}; message={}", 
-						t, t.getMessage(), t); 
-				//TODO: add retry logic
-				blockScan(size, scan);
+						t, t.getMessage(), t);
+				scanQueueMonitor.onLaunchFailed(scan);
+				//blockScan(size, scan);
 			}
 		}
 
