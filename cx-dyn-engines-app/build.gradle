@@ -8,9 +8,6 @@ dependencies {
     else if (project.hasProperty("vmware")) {
         implementation project(':cx-dyn-engines-vmware')
     }
-    else{ //default to aws
-        implementation project(':cx-dyn-engines-aws')
-    }
 }
 
 jar {
