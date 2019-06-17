@@ -10,6 +10,7 @@ cx:
   restUrl: http://54.91.211.119
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
   password: xxx                   #Checkmarx password
+  userName: admin@cx
   notificationId: arn:aws:sns:us-east-1:275043232443:DynamicEngines
 cx-engine:
   engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)

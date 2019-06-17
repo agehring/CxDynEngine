@@ -14,12 +14,14 @@
 package com.checkmarx.engine.vmware;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Enable Spring Boot autoconfiguration
  *  
  * @author randy@checkmarx.com
  */
+@Profile("vmware")
 @SpringBootApplication(scanBasePackages="com.checkmarx.engine")
 public class VmwareApplication {
 	

@@ -4,6 +4,7 @@
 package com.checkmarx.engine.aws;
 
 import org.springframework.boot.actuate.info.Info.Builder;
+import org.springframework.context.annotation.Profile;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
  * @author randy@checkmarx.com
  *
  */
+@Profile("aws")
 @Component
 public class CxAwsConfigInfo implements InfoContributor {
 

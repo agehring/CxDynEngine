@@ -78,6 +78,11 @@
     "description": "String to use for the the HTTP User-Agent during Rest requests"
   },
   {
+    "name": "cx.notificationId",
+    "type": "java.lang.String",
+    "description": "Identifier used when sending alert notifications. Format depends on Notification provider."
+  },
+  {
     "name": "cx-engine.pool",
     "type": "java.util.List<com.checkmarx.engine.domain.EnginePoolEntry>",
     "description": "Engine pool entries"
