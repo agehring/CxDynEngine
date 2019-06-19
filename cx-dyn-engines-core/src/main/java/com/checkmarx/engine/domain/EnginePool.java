@@ -306,6 +306,8 @@ public class EnginePool {
 					int minEngines = poolMins.get(engineSize);
 					log.debug("Idle engines: size={}; count={0}; minimum={}", engineSize, engines.size(), minEngines);
 					if (engines.size() > minEngines) {
+					    //FIXME-rjg: this causes a ConcurrentModification exception. 
+					    //   Have to create a temp list then change state outside of the loops
 						engines.forEach((engine) -> checkExpiredEngine(expiredCount, engine));
 					}
 					log.debug("Expiring engines: size={}; count={}", engineSize, expiredCount.get());

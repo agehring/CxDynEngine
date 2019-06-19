@@ -245,7 +245,10 @@ public class AwsEngines implements CxEngines {
 			    instance = launchEngine(engine, name, type, tags);
 			}
 	
-			instanceId = instance.getInstanceId();
+			// refresh instance state
+            instanceId = instance.getInstanceId();
+            instance = ec2Client.describe(instance.getInstanceId());
+            provisionedEngines.put(name, instance);
 			
 			if (Ec2.isTerminated(instance)) {
 			    log.debug("...EC2 instance is terminated, launching new instance...");
@@ -255,8 +258,8 @@ public class AwsEngines implements CxEngines {
                 log.debug("...EC2 instance is stopped, starting instance...");
 				instance = ec2Client.start(instanceId);
 			} else {
-                // instance is running, this shouldn't happen
-                log.warn("...EC2 instance is already running...");
+			    // this will happen if engine was launched
+                log.debug("...EC2 instance is running...");
 			}
 			
 			final Host host = createHost(name, instance);
