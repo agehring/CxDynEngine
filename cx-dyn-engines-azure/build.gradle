@@ -1,0 +1,24 @@
+description = 'Checkmarx CxSAST Dynamic Engine Azure Library'
+
+dependencies {
+    implementation project(':cx-dyn-engines-core')
+    implementation (
+        'com.microsoft.azure:azure-spring-boot-starter',
+        'com.microsoft.azure:com.microsoft.azure',
+        'com.microsoft.azure:azure',
+        'com.microsoft.azure:azure-mgmt-compute',
+        'com.microsoft.azure:azure-mgmt-resources',
+        'com.microsoft.azure:azure-spring-boot-starter'
+    )
+
+}
+
+jar {
+    manifest {
+        attributes(
+            "Implementation-Title": "Checkmarx Dynamic Engines Azure Library",
+            "Implementation-Version": version
+        )
+    }
+}
+
