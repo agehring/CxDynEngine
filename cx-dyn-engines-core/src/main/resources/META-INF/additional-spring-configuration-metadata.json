@@ -73,6 +73,11 @@
     "description": "A description for 'cx.timeoutSecs'"
   },
   {
+    "name": "cx.terminateOnStop",
+    "type": "java.lang.Boolean",
+    "description": "If 'true', terminate engine when idle engine expires; otherwise, stop engine"
+  },
+  {
     "name": "cx.userAgent",
     "type": "java.lang.String",
     "description": "String to use for the the HTTP User-Agent during Rest requests"

@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
+import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.DynamicEngine;
 import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
@@ -60,6 +61,7 @@ public class AwsEngines implements CxEngines {
 
 	private static final Logger log = LoggerFactory.getLogger(AwsEngines.class);
 	
+    private final CxConfig cxConfig;
 	private final AwsEngineConfig awsConfig;
 	private final EnginePoolConfig poolConfig;
 	private final AwsComputeClient ec2Client;
@@ -81,12 +83,14 @@ public class AwsEngines implements CxEngines {
 	private final Map<String, String> engineTypeMap;
 	
 	public AwsEngines(
+	        CxConfig cxConfig,
 			EnginePoolConfig poolConfig,
 			AwsComputeClient awsClient, 
 			CxEngineClient engineClient,
 			TaskManager taskManager) {
 		
-		this.poolConfig = poolConfig;
+	    this.cxConfig = cxConfig;
+	    this.poolConfig = poolConfig;
 		this.ec2Client = awsClient;
 		this.awsConfig = awsClient.getConfig(); 
 		this.engineClient = engineClient;
@@ -304,7 +308,7 @@ public class AwsEngines implements CxEngines {
     		instance = lookupInstance(engine, "stop");
     		instanceId = instance.getInstanceId();
 			
-			if (awsConfig.isTerminateOnStop() || forceTerminate) {	
+			if (cxConfig.isTerminateOnStop() || forceTerminate) {	
 				action = "TerminatedEngine";
 				ec2Client.terminate(instanceId);
 				provisionedEngines.remove(name);
@@ -443,7 +447,8 @@ public class AwsEngines implements CxEngines {
 	@Override
 	public String toString() {
 		return MoreObjects.toStringHelper(this)
-				.add("config", awsConfig)
+				.add("awsConfig", awsConfig)
+				.add("cxConfig", cxConfig)
 				.toString();
 	}
 }

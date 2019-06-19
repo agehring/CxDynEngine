@@ -9,6 +9,7 @@ cx:
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
   restUrl: http://54.91.211.119
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
+  terminateOnStop: false
   password: xxx                   #Checkmarx password
   userName: admin@cx
   notificationId: arn:aws:sns:us-east-1:275043232443:DynamicEngines
