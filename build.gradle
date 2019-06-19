@@ -82,6 +82,7 @@ subprojects {
         imports {
             mavenBom 'org.springframework.cloud:spring-cloud-dependencies:Camden.SR7'
             mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.159'
+            mavenBom "com.microsoft.azure:azure-spring-boot-bom:2.1.6"
         }
     }
 

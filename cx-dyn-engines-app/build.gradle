@@ -10,6 +10,10 @@ dependencies {
         println '...including VMWARE module'
         implementation project(':cx-dyn-engines-vmware')
     }
+    else if (project.hasProperty("azure")) {
+        println '...including AZURE module'
+        implementation project(':cx-dyn-engines-azure')
+    } 
 }
 
 jar {
