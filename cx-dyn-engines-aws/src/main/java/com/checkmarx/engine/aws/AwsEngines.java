@@ -227,8 +227,6 @@ public class AwsEngines implements CxEngines {
 	public void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) throws InterruptedException {
 		log.debug("launch(): {}; size={}; wait={}", engine, size, waitForSpinup);
 		
-		findEngines();
-		
 		final String name = engine.getName();
 		final String type = engineTypeMap.get(size.getName());
 		final Map<String, String> tags = createEngineTags(size.getName());
@@ -241,19 +239,24 @@ public class AwsEngines implements CxEngines {
 		boolean success = false;
 		final Stopwatch timer = Stopwatch.createStarted();
 		try {
-			if (instance == null) {
-				instance = launchEngine(engine, name, type, tags);
+			if (instance != null) {
+	            log.debug("...EC2 instance is provisioned...");
+			} else {
+			    instance = launchEngine(engine, name, type, tags);
 			}
 	
 			instanceId = instance.getInstanceId();
 			
 			if (Ec2.isTerminated(instance)) {
+			    log.debug("...EC2 instance is terminated, launching new instance...");
 				instance = launchEngine(engine, name, type, tags);
 				instanceId = instance.getInstanceId();
 			} else if (!Ec2.isRunning(instance)) {
+                log.debug("...EC2 instance is stopped, starting instance...");
 				instance = ec2Client.start(instanceId);
 			} else {
-				// host is running
+                // instance is running, this shouldn't happen
+                log.warn("...EC2 instance is already running...");
 			}
 			
 			final Host host = createHost(name, instance);
@@ -316,6 +319,7 @@ public class AwsEngines implements CxEngines {
 			} else {
 				ec2Client.stop(instanceId);
 				instance = ec2Client.describe(instanceId);
+				// update the map with updated instance
 				provisionedEngines.put(name, instance);
 			}
 			success = true;
