@@ -23,6 +23,7 @@ cx:
   queueingEngineName: DynamicEngine #Name given to the Blocked Engine in Cx UI
   restUrl: https://xxxx.com
   timeoutSecs: 120 #HTTP client request timeout (connection and read)
+  terminateOnStop: false
   userName: xxx #Checkmarx user (must have access to register engines)
   password: xxx #Checkmarx password
 
@@ -47,7 +48,6 @@ cx-aws-engine:
 #  tagMap:
 #    client: abc
 #    component: dynamic-engine
-  terminateOnStop: true
   usePublicUrlForCx: false #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: false #DE will monitor if an Engine is up and running based on Public or Private IP
 

@@ -37,6 +37,7 @@ public class CxConfig {
 	private int queueIntervalSecs = 20;
 	private String queueingEngineName="DynamicEngine";
 	private String restUrl;
+    private boolean terminateOnStop;
 	private int timeoutSecs = 20;
 	private String userAgent = "CxDynamicEngineManager";
 	private String notificationId; //Identifier for Notification implementation (ARN/URI/UID/etc)
@@ -136,6 +137,14 @@ public class CxConfig {
 		this.restUrl = url;
 	}
 
+    public boolean isTerminateOnStop() {
+        return terminateOnStop;
+    }
+
+    public void setTerminateOnStop(boolean terminateOnStop) {
+        this.terminateOnStop = terminateOnStop;
+    }
+
 	public int getTimeoutSecs() {
 		return timeoutSecs;
 	}
@@ -144,7 +153,7 @@ public class CxConfig {
 		this.timeoutSecs = timeoutSecs;
 	}
 
-	public String getUserAgent() {
+    public String getUserAgent() {
 		return userAgent;
 	}
 
@@ -203,7 +212,8 @@ public class CxConfig {
 				.add("queueIntervalSecs", queueIntervalSecs)
 				.add("queueingEngineName", queueingEngineName)
 				.add("restUrl", restUrl)
-				.add("timeoutSecs", timeoutSecs)
+				.add("terminateOnStop", terminateOnStop)
+                .add("timeoutSecs", timeoutSecs)
 				.add("userAgent", userAgent)
 				.add("version", getVersion())
 				.add("notificationId", notificationId)

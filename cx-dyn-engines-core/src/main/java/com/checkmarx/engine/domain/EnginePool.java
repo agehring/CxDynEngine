@@ -13,6 +13,7 @@
  ******************************************************************************/
 package com.checkmarx.engine.domain;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -28,6 +29,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -300,44 +302,53 @@ public class EnginePool {
 			try {
 
 				final AtomicInteger expiredCount = new AtomicInteger(0);
+				final List<DynamicEngine> expiringEngines = Lists.newArrayList();
 				
 				// loop thru IDLE engines looking for expiration
 				idleEngines.forEach((engineSize, engines) -> {
 					int minEngines = poolMins.get(engineSize);
 					log.debug("Idle engines: size={}; count={0}; minimum={}", engineSize, engines.size(), minEngines);
 					if (engines.size() > minEngines) {
-						engines.forEach((engine) -> checkExpiredEngine(expiredCount, engine));
+						engines.forEach(engine -> {
+						    if (checkExpiredEngine(expiredCount, engine)) {
+						        expiringEngines.add(engine);
+						    }
+						});
 					}
 					log.debug("Expiring engines: size={}; count={}", engineSize, expiredCount.get());
 				});
-				
+				expiringEngines.forEach(engine -> processExpiredEngines(engine));
 			} catch (Throwable t) {
 				log.warn("Error occurred while checking expired engines; cause={}; message={}", 
 						t, t.getMessage(), t); 
 				// swallow for now to avoid killing background thread
 			}
-			
-		}
-
-		private void checkExpiredEngine(AtomicInteger expiredCount, DynamicEngine engine) {
-			try {
-				final DateTime expireTime = engine.getTimeToExpire();
-				log.trace("Checking idle engine: name={}; expireTime={}", 
-						engine.getName(), expireTime);
-
-				if (expireTime == null) return;
-
-				if (expireTime.minusMinutes(expireBufferMins).isBeforeNow()) {
-					expiredCount.incrementAndGet();
-					enginePool.expireEngine(engine);
-					//engine.setState(State.EXPIRING);
-					expiredEnginesQueue.put(engine);
-				}
-			} catch (InterruptedException e) {
-				log.info("EngineMonitor interrupted");
-			}
 		}
 		
+		private void processExpiredEngines(DynamicEngine engine) {
+            log.debug("processExpiredEngines(): {}", engine);
+
+            try {
+                enginePool.expireEngine(engine);
+                expiredEnginesQueue.put(engine);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("IdleEngineMonitor interrupted, exiting...");
+            }
+		}
+
+		private boolean checkExpiredEngine(AtomicInteger expiredCount, DynamicEngine engine) {
+			final DateTime expireTime = engine.getTimeToExpire();
+			log.trace("Checking idle engine: name={}; expireTime={}", 
+					engine.getName(), expireTime);
+
+			if (expireTime == null) return false;
+
+			if (expireTime.minusMinutes(expireBufferMins).isBeforeNow()) {
+				expiredCount.incrementAndGet();
+				return true;
+			}
+			return false;
+		}
 	}
 	
 	public static class EnginePoolEntry implements Comparable<EnginePoolEntry> {

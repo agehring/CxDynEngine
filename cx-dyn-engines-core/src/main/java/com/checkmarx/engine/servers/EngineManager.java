@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
+import com.checkmarx.engine.rest.Notification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
@@ -70,7 +71,8 @@ public class EngineManager implements Runnable {
 	private final ExecutorService engineExpiringExecutor;
 	private final ScheduledExecutorService idleEngineExecutor;
 	private final TaskManager taskManager;
-	
+	private final Notification notify;
+
 	private final static int MANAGER_THREAD_POOL_SIZE = 3;
 	//FIXME: move these to config
 	private final static int SCANS_QUEUED_THREAD_POOL_SIZE = 10;
@@ -110,7 +112,8 @@ public class EngineManager implements Runnable {
 			TaskManager taskManager,
 			ScanQueueMonitor scanQueueMonitor,
 			BlockingQueue<ScanRequest> scansQueued,
-			BlockingQueue<ScanRequest> scansFinished) {
+			BlockingQueue<ScanRequest> scansFinished,
+			Notification notify) {
 		this.pool = pool;
 		this.config = config;
 		this.cxClient = cxClient;
@@ -126,6 +129,7 @@ public class EngineManager implements Runnable {
 		this.scanFinishedExecutor = ExecutorServiceUtils.buildPooledExecutorService(SCANS_FINISHED_THREAD_POOL_SIZE, "scan-finish-%d", true);
 		this.engineExpiringExecutor = ExecutorServiceUtils.buildPooledExecutorService(ENGINE_EXPIRING_THREAD_POOL_SIZE, "engine-kill-%d", true);
 		this.idleEngineExecutor = ExecutorServiceUtils.buildScheduledExecutorService("idle-mon-%d", true);
+		this.notify = notify;
 	}
 
 	@Override
@@ -406,6 +410,7 @@ public class EngineManager implements Runnable {
 			} catch (Throwable t) {
 				log.error("Error occurred launching scan; cause={}; message={}", 
 						t, t.getMessage(), t);
+				notify.sendNotification(config.getNotificationSubject(),"Error occurred launching scan", t);
 				scanQueueMonitor.onLaunchFailed(scan);
 				//blockScan(size, scan);
 			}

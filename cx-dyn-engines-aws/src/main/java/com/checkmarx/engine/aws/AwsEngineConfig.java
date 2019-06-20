@@ -149,10 +149,12 @@ public class AwsEngineConfig {
 		this.subnetId = subnetId;
 	}
 
+    @Deprecated
 	public boolean isTerminateOnStop() {
 		return terminateOnStop;
 	}
 
+	@Deprecated
 	public void setTerminateOnStop(boolean terminateOnStop) {
 		this.terminateOnStop = terminateOnStop;
 	}

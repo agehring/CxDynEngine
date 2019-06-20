@@ -13,7 +13,10 @@
  ******************************************************************************/
 package com.checkmarx.engine.aws;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
@@ -23,10 +26,6 @@ import java.util.concurrent.TimeoutException;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -52,12 +51,17 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;
-import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TagSpecification;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.AutomationExecution;
+import com.amazonaws.services.simplesystemsmanagement.model.GetAutomationExecutionRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetAutomationExecutionResult;
+import com.amazonaws.services.simplesystemsmanagement.model.StartAutomationExecutionRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.StartAutomationExecutionResult;
 import com.checkmarx.engine.aws.Ec2.InstanceState;
 import com.checkmarx.engine.utils.TaskManager;
 import com.checkmarx.engine.utils.TimeoutTask;
@@ -269,7 +273,8 @@ public class AwsEc2Client implements AwsComputeClient {
 			String executionId = result.getAutomationExecutionId();
 
 			AutomationExecution execution = getAutomationExecution(executionId);
-			log.info(execution.getAutomationExecutionStatus());
+			log.debug("action=Stopping EC2 instance via SSM; instanceId={}; status={}", 
+			        instanceId, execution.getAutomationExecutionStatus());
 			// TODO: monitor In Progress -> Success
 
 			log.debug("Execution id for SSM EC2 Instance shutdown: {}", executionId);

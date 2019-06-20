@@ -28,7 +28,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 
 /**
- * @author randy@checkmarx.comer
+ * @author randy@checkmarx.com
  *
  */
 public class DynamicEngine implements Comparable<DynamicEngine> {

@@ -24,6 +24,7 @@ cx:
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
   restUrl: http://54.84.164.197
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
+  terminateOnStop: false
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
 
@@ -48,7 +49,6 @@ cx-aws-engine:
 #    client: abc
 #    component: cx-de
     owner: Randy
-  terminateOnStop: true
   usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: true    #DE will monitor if an Engine is up and running based on Public or Private IP
 

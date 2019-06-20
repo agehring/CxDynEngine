@@ -15,6 +15,7 @@ package com.checkmarx.engine.spring;
 
 import java.util.List;
 
+import com.checkmarx.engine.rest.Notification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -91,10 +92,12 @@ public class CoreApplicationConfig {
 			CxEngines engineProvisioner,
 			TaskManager taskManager,
 			ScanQueueMonitor scanQueueMonitor,
-			ScanQueue scansQueued, ScanQueue scansFinished) {
+			ScanQueue scansQueued,
+			ScanQueue scansFinished,
+			Notification notify) {
 		
 		return new EngineManager(config, enginePool, cxClient, engineProvisioner, taskManager, 
-		        scanQueueMonitor, scansQueued.getQueue(), scansFinished.getQueue());
+		        scanQueueMonitor, scansQueued.getQueue(), scansFinished.getQueue(), notify);
 	}
 	
 }

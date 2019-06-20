@@ -65,16 +65,16 @@ public class CxEngineHttpClient extends BaseHttpClient implements CxEngineClient
 		final String url = buildEngineServiceUrl(host);
 		
 		try {
-			final String payload = execute("pingEngine", () -> {
+			final String payload = execute("pingEngine; host=" + host , () -> {
 				final ResponseEntity<String> response = engineClient.getForEntity(url, String.class);
 				return response.getBody();
 			});
-			log.debug("pingEngine: response={}", payload.substring(0, 120));
+			log.debug("pingEngine: host={}; response={}", host, payload.substring(0, 120));
 			
 			return true;
 			
 		} catch (RestClientException ex) {
-			log.debug("pingEngine failed : message={}", ex.getMessage());
+			log.debug("pingEngine failed: host={}; message={}", host, ex.getMessage());
 			return false;
 		}
 	}
