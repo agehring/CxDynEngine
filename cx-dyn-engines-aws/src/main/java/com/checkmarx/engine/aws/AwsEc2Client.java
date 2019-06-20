@@ -273,7 +273,8 @@ public class AwsEc2Client implements AwsComputeClient {
 			String executionId = result.getAutomationExecutionId();
 
 			AutomationExecution execution = getAutomationExecution(executionId);
-			log.info(execution.getAutomationExecutionStatus());
+			log.debug("action=Stopping EC2 instance via SSM; instanceId={}; status={}", 
+			        instanceId, execution.getAutomationExecutionStatus());
 			// TODO: monitor In Progress -> Success
 
 			log.debug("Execution id for SSM EC2 Instance shutdown: {}", executionId);
