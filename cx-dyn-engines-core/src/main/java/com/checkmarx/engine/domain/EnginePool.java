@@ -167,12 +167,20 @@ public class EnginePool {
 		final String name = newEngine.getName();
 		final String size = newEngine.getSize();
 		final EngineSize engineSize = scanSizes.get(size);
+		if (engineSize == null) {
+		    log.warn("Existing engine size is unknown, skipping; {}", newEngine);
+		    return null;
+		}
 		
 		final DynamicEngine curEngine = allNamedEngines.get(name);
-		if (curEngine == null) return null;
+        if (curEngine == null) {
+            log.warn("Existing engine name is unknown, skipping; {}", newEngine);
+            return null;
+        }
 		
 		final State curState = curEngine.getState();
 
+		// TODO-rjg: why not just update maps as opposed to remove and add?
 		allSizedEngines.get(size).remove(curEngine);
         engineSizes.get(engineSize).decrementAndGet();
 		engineMaps.get(curState).get(size).remove(curEngine);

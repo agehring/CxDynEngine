@@ -288,22 +288,17 @@ public class EngineManager implements Runnable {
                 .collect(Collectors.toList());
         
         // remove idle engines from provisioned list
-        idleEngines.forEach(engine -> provisionedEngines.remove(engine));
+        idleEngines.forEach(engine -> {
+            addEngineToPool(engine);
+            provisionedEngines.remove(engine);
+        });
         
         provisionedEngines.forEach((engine) -> {
-            final DynamicEngine oldEngine = pool.addExistingEngine(engine);
-            if (oldEngine == null) {
-                // engine not found in pool, skip
-                // FIXME-rjg: what should we do here?  shut it down?
-                log.warn("Existing engine not found in pool most likely due to configuration change, skipping existing engine...; {}", engine);
-                //engineProvisioner.stop(engine);
-                return;
-            }
+            if (!addEngineToPool(engine)) return; 
             if (checkForActiveScan(engine, activeScans)) {
                 activeEngines.add(engine);
                 engine.setState(State.SCANNING);
             } else {
-                engine.setState(State.IDLE);
                 idleEngines.add(engine);
             }
         });
@@ -314,11 +309,24 @@ public class EngineManager implements Runnable {
         return activeEngines;
     }
 
+    private boolean addEngineToPool(DynamicEngine engine) {
+        final DynamicEngine oldEngine = pool.addExistingEngine(engine);
+        if (oldEngine == null) {
+            // engine not found in pool, skip
+            // FIXME-rjg: what should we do here?  shut it down?
+            log.warn("Existing engine not found in pool most likely due to configuration change, skipping existing engine...; {}", engine);
+            //engineProvisioner.stop(engine);
+            return false;
+        }
+        return true;
+    }
+
     private void unRegisterIdleEngines(
             List<DynamicEngine> idleEngines, 
             List<EngineServer> registeredEngines) {
         
         idleEngines.forEach(engine -> {
+            engine.setState(State.IDLE);
             final String sEngineId = engine.getEngineId();
             if (Strings.isNullOrEmpty(sEngineId)) {
                 return;
