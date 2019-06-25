@@ -43,6 +43,7 @@ cx-aws-engine:
   monitorPollingIntervalSecs: 10  #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
   scriptOnLaunch: scripts/launch.groovy
   scriptOnTerminate: scripts/terminate.groovy
+  stopWaitTimeSecs: 30
   securityGroup: sg-a0e70bdc      #AWS Security Group to apply to launched Engines
   subnetId: subnet-cdc39b84       #AWS Subnet ID to launch Engines into
   tagMap:
