@@ -96,10 +96,9 @@ public class VM {
 				.add("name", getName(instance))
 				.add("state", instance.powerState().toString().toUpperCase())
 				.add("type", instance.type())
-				.add("imageId", instance.vmId()) //TODO
+				//.add("imageId", instance.vmId()) //TODO - cannot find image Id in API
 				.add("privateIp", instance.getPrimaryNetworkInterface().primaryPrivateIP())
 				.add("publicIp", instance.getPrimaryPublicIPAddressId())
-				.add("launchTime", "") //TODO
 				.add("tags", "[" + tags + "]")
 				.toString();
 	}

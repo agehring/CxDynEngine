@@ -113,6 +113,8 @@ public class AzureEngines implements CxEngines {
 		tags.put(CX_SIZE_TAG, size);
 		// set scanID to empty initially
 		tags.put(CX_SCAN_ID_TAG, "");
+		//add time started tag
+		tags.put(AzureConstants.START_TIME_TAG, DateTime.now().toString());
 		// add custom tags from configuration
 		azureConfig.getTagMap().forEach(tags::put);
 		return tags;
@@ -223,9 +225,7 @@ public class AzureEngines implements CxEngines {
 			backoff = @Backoff(delay = AzureConstants.RETRY_DELAY))
 	public void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) throws InterruptedException {
 		log.debug("launch(): {}; size={}; wait={}", engine, size, waitForSpinup);
-		
-		findEngines();
-		
+
 		final String name = engine.getName();
 		final String type = engineTypeMap.get(size.getName());
 		final Map<String, String> tags = createEngineTags(size.getName());

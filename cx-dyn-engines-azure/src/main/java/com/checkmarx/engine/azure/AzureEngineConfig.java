@@ -29,16 +29,20 @@ import java.util.Map;
 @JsonIgnoreProperties("$$beanFactory")
 public class AzureEngineConfig {
 
-	private boolean assignPublicIP;
+	private boolean assignPublicIP = false;
 	private int cxEngineTimeoutSec=300;
 	private String cxVersion;
-	private String iamProfile;
-	private String imageId;
-	private String keyName;
+	//private String iamProfile; todo equivalent?
+	private String imageName;
+	private String serverAdmin;
+	private String serverPassword;
+	private String region;
+	private String resourceGroup;
+	private String networkName;
 	private int launchTimeoutSec=60;
 	private int monitorPollingIntervalSecs = 10;
 	private String securityGroup;
-	private String subnetId;
+	private String subnetName;
 	private boolean terminateOnStop;
 	private boolean usePublicUrlForCx = false;
 	private boolean usePublicUrlForMonitor = false;
@@ -85,28 +89,21 @@ public class AzureEngineConfig {
 		this.cxVersion = cxVersion;
 	}
 
+	/*
 	public String getIamProfile() {
 		return iamProfile;
 	}
 
 	public void setIamProfile(String iamProfile) {
 		this.iamProfile = iamProfile;
+	}*/
+
+	public String getImageName() {
+		return imageName;
 	}
 
-	public String getImageId() {
-		return imageId;
-	}
-
-	public void setImageId(String imageId) {
-		this.imageId = imageId;
-	}
-
-	public String getKeyName() {
-		return keyName;
-	}
-
-	public void setKeyName(String keyName) {
-		this.keyName = keyName;
+	public void setImageId(String imageName) {
+		this.imageName = imageName;
 	}
 
 	/**
@@ -139,12 +136,12 @@ public class AzureEngineConfig {
 		this.launchTimeoutSec = launchTimeoutSec;
 	}
 
-	public String getSubnetId() {
-		return subnetId;
+	public String getSubnetName() {
+		return subnetName;
 	}
 
-	public void setSubnetId(String subnetId) {
-		this.subnetId = subnetId;
+	public void setSubnetId(String subnetName) {
+		this.subnetName = subnetName;
 	}
 
 	public boolean isTerminateOnStop() {
@@ -193,6 +190,54 @@ public class AzureEngineConfig {
 		this.scriptOnTerminate = scriptOnTerminate;
 	}
 
+	public void setImageName(String imageName) {
+		this.imageName = imageName;
+	}
+
+	public String getServerAdmin() {
+		return serverAdmin;
+	}
+
+	public void setServerAdmin(String serverAdmin) {
+		this.serverAdmin = serverAdmin;
+	}
+
+	public String getServerPassword() {
+		return serverPassword;
+	}
+
+	public void setServerPassword(String serverPassword) {
+		this.serverPassword = serverPassword;
+	}
+
+	public String getRegion() {
+		return region;
+	}
+
+	public void setRegion(String region) {
+		this.region = region;
+	}
+
+	public String getResourceGroup() {
+		return resourceGroup;
+	}
+
+	public void setResourceGroup(String resourceGroup) {
+		this.resourceGroup = resourceGroup;
+	}
+
+	public String getNetworkName() {
+		return networkName;
+	}
+
+	public void setNetworkName(String networkName) {
+		this.networkName = networkName;
+	}
+
+	public void setSubnetName(String subnetName) {
+		this.subnetName = subnetName;
+	}
+
 	/**
 	 * Map of EngineSize to Azure instanceType;
 	 * key=size (name), 
@@ -231,9 +276,8 @@ public class AzureEngineConfig {
 				.add("assignPublicIP", assignPublicIP)
 				.add("cxEngineTimeoutSec", cxEngineTimeoutSec)
 				.add("cxVersion", cxVersion)
-				.add("iamProfile", iamProfile)
-				.add("imageId", imageId)
-				.add("keyName", keyName)
+				//.add("iamProfile", iamProfile)
+				.add("imageName", imageName)
 				.add("monitorPollingIntervalSecs", monitorPollingIntervalSecs)
 				.add("securityGroup", securityGroup)
 				.add("launchTimeoutSec", launchTimeoutSec)
