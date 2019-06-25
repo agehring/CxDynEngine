@@ -166,6 +166,7 @@ public class EnginePool {
 		
 		final String name = newEngine.getName();
 		final String size = newEngine.getSize();
+		final EngineSize engineSize = scanSizes.get(size);
 		
 		final DynamicEngine curEngine = allNamedEngines.get(name);
 		if (curEngine == null) return null;
@@ -173,6 +174,7 @@ public class EnginePool {
 		final State curState = curEngine.getState();
 
 		allSizedEngines.get(size).remove(curEngine);
+        engineSizes.get(engineSize).decrementAndGet();
 		engineMaps.get(curState).get(size).remove(curEngine);
 		
 		addEngine(newEngine);

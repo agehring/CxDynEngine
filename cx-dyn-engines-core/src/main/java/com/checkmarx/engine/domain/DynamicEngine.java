@@ -87,11 +87,13 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		engine.scanId = scanId;
 		engine.engineId = engineId;
 		engine.launchTime = launchTime;
+		/*
 		if (isRunning) {
 		    // TODO-RJG: should we pass state?
 			engine.state = State.IDLE;
 			engine.timeToExpire = engine.calcExpirationTime();
 		}
+		*/
 		return engine;
 	}
 	
