@@ -285,21 +285,26 @@ public class EngineManager implements Runnable {
         
         final List<DynamicEngine> idleEngines = provisionedEngines.stream()
                 .filter(engine -> Strings.isNullOrEmpty(engine.getScanId()))
+				.filter(engine -> engine.getHost() != null) //a host object reference here is the only indication of a running server
                 .collect(Collectors.toList());
-        
-        // remove idle engines from provisioned list
-        idleEngines.forEach(engine -> {
-            addEngineToPool(engine);
-            provisionedEngines.remove(engine);
-        });
-        
-        provisionedEngines.forEach((engine) -> {
-            if (!addEngineToPool(engine)) return; 
+
+		final List<DynamicEngine> scanningEngines = provisionedEngines.stream()
+				.filter(engine -> !Strings.isNullOrEmpty(engine.getScanId()))
+				.filter(engine -> engine.getHost() != null) //a host object reference here is the only indication of a running server
+				.collect(Collectors.toList());
+
+		// add idle engines to the pool
+		idleEngines.forEach(engine -> addEngineToPool(engine));
+
+        //Check the active scans,
+        scanningEngines.forEach((engine) -> {
+            if (!addEngineToPool(engine)) return;
             if (checkForActiveScan(engine, activeScans)) {
                 activeEngines.add(engine);
                 engine.setState(State.SCANNING);
             } else {
                 idleEngines.add(engine);
+                engineProvisioner.onScanRemoved(engine);  //remove reference to the invalid scan id
             }
         });
         
