@@ -20,7 +20,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+
 import javax.validation.constraints.NotNull;
+
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +35,6 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
 import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.DynamicEngine;
-import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
@@ -184,11 +185,6 @@ public class AwsEngines implements CxEngines {
 				launchTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
-			if (Strings.isNullOrEmpty(scanId)) {
-	            engine.setState(State.IDLE);
-			} else {
-	            engine.setState(State.SCANNING);
-			}
 		}
 		return engine;
 	}
@@ -254,6 +250,12 @@ public class AwsEngines implements CxEngines {
 			    log.debug("...EC2 instance is terminated, launching new instance...");
 				instance = launchEngine(engine, name, type, tags);
 				instanceId = instance.getInstanceId();
+            } else if (Ec2.isStopping(instance)) {
+                final int sleep = awsConfig.getStopWaitTimeSecs();
+                log.debug("...EC2 instance is stopping, sleeping {}s...", sleep);
+                Thread.sleep(sleep * 1000);
+                log.debug("...EC2 instance is stopping, starting instance...");
+                instance = ec2Client.start(instanceId);
 			} else if (!Ec2.isRunning(instance)) {
                 log.debug("...EC2 instance is stopped, starting instance...");
 				instance = ec2Client.start(instanceId);

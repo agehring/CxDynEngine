@@ -84,6 +84,11 @@ public class Ec2 {
 		return !isTerminated(instance);
 	}
 	
+    public static boolean isStopping(Instance instance) {
+        final InstanceState state = getState(instance);
+        return InstanceState.STOPPING.equals(state);
+    }
+
 	public static boolean isTerminated(@NotNull Instance instance) {
 		final InstanceState state = getState(instance);
 		switch (state) {
