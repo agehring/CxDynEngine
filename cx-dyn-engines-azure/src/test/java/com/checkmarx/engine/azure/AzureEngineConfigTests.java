@@ -45,11 +45,9 @@ public class AzureEngineConfigTests extends AzureSpringTest {
 		
 		log.info("{}", config);
 		
-		assertThat(config.getIamProfile(), is(not(isEmptyOrNullString())));
-		assertThat(config.getImageId(), is(not(isEmptyOrNullString())));
-		assertThat(config.getKeyName(), is(not(isEmptyOrNullString())));
-		assertThat(config.getSecurityGroup(), is(not(isEmptyOrNullString())));
-		assertThat(config.getSubnetId(), is(not(isEmptyOrNullString())));
+		//assertThat(config.getIamProfile(), is(not(isEmptyOrNullString())));
+		assertThat(config.getImageName(), is(not(isEmptyOrNullString())));
+		assertThat(config.getSubnetName(), is(not(isEmptyOrNullString())));
 
 		final Map<String, String> sizeMap = config.getEngineSizeMap();
 		assertThat(sizeMap, notNullValue());

@@ -79,10 +79,8 @@ public class AzureClientTests extends AzureSpringTest {
 		assertThat(VM.getTag(instance, CxEngines.CX_ROLE_TAG), is(role.toString()));
 		assertThat(VM.getTag(instance, CxEngines.CX_VERSION_TAG), is(version));
 		assertEquals(instanceType, instance.size());
-		//assertEquals(config.getKeyName(), instance.getKeyName()); TODO what is key
 		//assertEquals(config.getImageId(), instance.getImageId());
-		assertEquals(config.getSubnetId(), instance.getPrimaryNetworkInterface().primaryIPConfiguration().subnetName());
-		assertEquals(config.getSecurityGroup(), instance.getPrimaryNetworkInterface().getNetworkSecurityGroup().id()); //TODO validate
+		assertEquals(config.getSubnetName(), instance.getPrimaryNetworkInterface().primaryIPConfiguration().subnetName());
 	}
 	
 	@Test

@@ -41,7 +41,7 @@ public class AzureEngineConfig {
 	private String networkName;
 	private int launchTimeoutSec=60;
 	private int monitorPollingIntervalSecs = 10;
-	private String securityGroup;
+	//private String securityGroup; This is configured at the network creation time (outside of DE context)
 	private String subnetName;
 	private int stopWaitTimeSecs = 30;
 	private boolean usePublicUrlForCx = false;
@@ -52,7 +52,7 @@ public class AzureEngineConfig {
 	/**
 	 * Maps EngineSize to Azure instanceType;
 	 * 	key=size (M), 
-	 * 	value=ec2 instance type (m4.large)
+	 * 	value=Azure VM type
 	 */
 	private final Map<String, String> engineSizeMap = Maps.newHashMap();
 	
@@ -116,13 +116,13 @@ public class AzureEngineConfig {
 		this.monitorPollingIntervalSecs = monitorPollingIntervalSecs;
 	}
 
-	public String getSecurityGroup() {
+	/*public String getSecurityGroup() {
 		return securityGroup;
-	}
+	}*/
 
-	public void setSecurityGroup(String securityGroup) {
+	/*public void setSecurityGroup(String securityGroup) {
 		this.securityGroup = securityGroup;
-	}
+	}*/
 
 	/**
 	 * Timeout to wait for Running state after Azure instance launch
@@ -278,7 +278,7 @@ public class AzureEngineConfig {
 				//.add("iamProfile", iamProfile)
 				.add("imageName", imageName)
 				.add("monitorPollingIntervalSecs", monitorPollingIntervalSecs)
-				.add("securityGroup", securityGroup)
+				//.add("securityGroup", securityGroup)
 				.add("launchTimeoutSec", launchTimeoutSec)
 				.add("scriptOnLaunch", scriptOnLaunch)
 				.add("scriptOnTerminate", scriptOnTerminate)
