@@ -159,8 +159,8 @@ public class AzureClient implements AzureComputeClient {
 			final VirtualMachine instance = client.virtualMachines().getById(instanceId);
 			PowerState instancePowerState = instance.powerState();
 			if (!instancePowerState.equals(PowerState.RUNNING)
-					&& !instancePowerState.equals(PowerState.RUNNING)) { //Check in case first pass successfully started despite exception
-				instance.start(); //TODO Async with timeout? What is default timeout?
+					&& !instancePowerState.equals(PowerState.STARTING)) { //Check in case first pass successfully started despite exception
+				instance.start();
 				log.info("action=startInstance; instanceId={}; state={}; {}",
 						instanceId, instance.powerState(), VM.print(instance));
 			} else {
@@ -186,7 +186,7 @@ public class AzureClient implements AzureComputeClient {
 
 		try {
 			final VirtualMachine instance = client.virtualMachines().getById(instanceId);
-			instance.powerOff(); //TODO Async? Timeout?
+			instance.powerOff();
 		} catch (Throwable e) {
 			log.warn("Failed to stop Azure instance; instanceId={}; cause={}; message={}",
 					instanceId, e, e.getMessage());
