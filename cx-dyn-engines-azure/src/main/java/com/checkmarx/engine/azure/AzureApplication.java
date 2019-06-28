@@ -33,7 +33,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *  
  * @author ken.mcdonald@checkmarx.com
  */
-@SpringBootApplication(scanBasePackages="com.checkmarx.engine")
+@SpringBootApplication(
+        scanBasePackages="com.checkmarx.engine",
+        exclude = {org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration.class}
+        )
 public class AzureApplication {
 	
 	// placeholder
