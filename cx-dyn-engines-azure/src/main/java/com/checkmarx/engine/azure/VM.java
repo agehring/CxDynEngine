@@ -69,7 +69,12 @@ public class VM {
 	public static boolean isProvisioned(@NotNull VirtualMachine instance) {
 		return !isTerminated(instance);
 	}
-	
+
+	public static boolean isStopping(@NotNull VirtualMachine instance) {
+		final InstanceState state = getState(instance);
+		return InstanceState.STOPPING.equals(state);
+	}
+
 	public static boolean isTerminated(@NotNull VirtualMachine instance) {
 		final InstanceState state = getState(instance);
 		switch (state) {

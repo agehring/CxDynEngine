@@ -33,7 +33,9 @@ import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
@@ -212,7 +214,15 @@ public class AzureClient implements AzureComputeClient {
 
 	@Override
 	public @NotNull List<VirtualMachine> find(@NotNull Map<String, String> tags) {
-		return null;
+		ListIterator<VirtualMachine> vms = client.virtualMachines().list().listIterator();
+		List<VirtualMachine> vmList = new ArrayList<>();
+		while(vms.hasNext()){
+			VirtualMachine vm = vms.next();
+			if(vm.tags().entrySet().containsAll(tags.entrySet())){
+				vmList.add(vm);
+			}
+		}
+		return vmList;
 	}
 
 	@Override

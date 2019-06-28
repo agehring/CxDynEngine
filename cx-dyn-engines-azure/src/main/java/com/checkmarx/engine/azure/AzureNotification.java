@@ -14,6 +14,9 @@
 package com.checkmarx.engine.azure;
 
 import com.checkmarx.engine.rest.Notification;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -21,9 +24,10 @@ import org.springframework.stereotype.Component;
 @Profile("azure")
 public class AzureNotification implements Notification {
 
+    private static final Logger log = LoggerFactory.getLogger(AzureNotification.class);
 
     @Override
     public void sendNotification(String subject, String message, Throwable throwable) {
-
+        log.warn("Notification: Subject={}, Message={}, Exception={}", subject, message, ExceptionUtils.getMessage(throwable));
     }
 }

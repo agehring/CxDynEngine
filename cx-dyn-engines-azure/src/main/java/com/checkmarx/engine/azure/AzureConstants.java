@@ -18,7 +18,7 @@ public class AzureConstants {
 	public final static String NAME_TAG = "Name";
 	public final static String START_TIME_TAG = "StartTime";
 
-	public static final long RETRY_DELAY = 500; // ms
+	public static final long RETRY_DELAY = 10* 1000; // ms
 	public static final int RETRY_ATTEMPTS = 2;
 
 }

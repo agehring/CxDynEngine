@@ -43,10 +43,9 @@ public class AzureEngineConfig {
 	private int monitorPollingIntervalSecs = 10;
 	private String securityGroup;
 	private String subnetName;
-	private boolean terminateOnStop;
+	private int stopWaitTimeSecs = 30;
 	private boolean usePublicUrlForCx = false;
 	private boolean usePublicUrlForMonitor = false;
-
 	private String scriptOnLaunch;
 	private String scriptOnTerminate;
 
@@ -144,14 +143,6 @@ public class AzureEngineConfig {
 		this.subnetName = subnetName;
 	}
 
-	public boolean isTerminateOnStop() {
-		return terminateOnStop;
-	}
-
-	public void setTerminateOnStop(boolean terminateOnStop) {
-		this.terminateOnStop = terminateOnStop;
-	}
-
 	public boolean isUsePublicUrlForCx() {
 		return usePublicUrlForCx;
 	}
@@ -238,6 +229,14 @@ public class AzureEngineConfig {
 		this.subnetName = subnetName;
 	}
 
+	public int getStopWaitTimeSecs() {
+		return stopWaitTimeSecs;
+	}
+
+	public void setStopWaitTimeSecs(int stopWaitTimeSecs) {
+		this.stopWaitTimeSecs = stopWaitTimeSecs;
+	}
+
 	/**
 	 * Map of EngineSize to Azure instanceType;
 	 * key=size (name), 
@@ -283,7 +282,6 @@ public class AzureEngineConfig {
 				.add("launchTimeoutSec", launchTimeoutSec)
 				.add("scriptOnLaunch", scriptOnLaunch)
 				.add("scriptOnTerminate", scriptOnTerminate)
-				.add("terminateOnStop", terminateOnStop)
 				.add("usePublicUrlForCx", usePublicUrlForCx)
 				.add("usePublicUrlForMonitor", usePublicUrlForMonitor)
 				.add("engineSizeMap", "[" + printEngineSizeMap() +"]")

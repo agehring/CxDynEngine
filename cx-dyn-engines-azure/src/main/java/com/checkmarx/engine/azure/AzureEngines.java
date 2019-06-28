@@ -13,6 +13,7 @@
  ******************************************************************************/
 package com.checkmarx.engine.azure;
 
+import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.DynamicEngine;
 import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
@@ -59,7 +60,8 @@ import java.util.concurrent.TimeUnit;
 public class AzureEngines implements CxEngines {
 
 	private static final Logger log = LoggerFactory.getLogger(AzureEngines.class);
-	
+
+	private final CxConfig cxConfig;
 	private final AzureEngineConfig azureConfig;
 	private final EnginePoolConfig poolConfig;
 	private final AzureComputeClient azureClient;
@@ -81,11 +83,13 @@ public class AzureEngines implements CxEngines {
 	private final Map<String, String> engineTypeMap;
 
 	public AzureEngines(
+			CxConfig cxConfig,
 			EnginePoolConfig poolConfig,
 			AzureComputeClient azureClient,
 			CxEngineClient engineClient,
 			TaskManager taskManager) {
-		
+
+		this.cxConfig = cxConfig;
 		this.poolConfig = poolConfig;
 		this.azureClient = azureClient;
 		this.azureConfig = azureClient.getConfig(); 
@@ -183,11 +187,6 @@ public class AzureEngines implements CxEngines {
 				launchTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
-			if (Strings.isNullOrEmpty(scanId)) {
-	            engine.setState(State.IDLE);
-			} else {
-	            engine.setState(State.SCANNING);
-			}
 		}
 		return engine;
 	}
@@ -238,19 +237,33 @@ public class AzureEngines implements CxEngines {
 		boolean success = false;
 		final Stopwatch timer = Stopwatch.createStarted();
 		try {
-			if (instance == null) {
+			if (instance != null) {
+				log.debug("...Azure VM is provisioned...");
+			}
+			else{
 				instance = launchEngine(engine, name, type, tags);
 			}
-	
 			instanceId = instance.id();
+			//refresh instance state
+			instance = azureClient.describe(instanceId);
+			provisionedEngines.put(name, instance);
 			
 			if (VM.isTerminated(instance)) {
+				log.debug("...Azure VM is terminated, launching new instance...");
 				instance = launchEngine(engine, name, type, tags);
 				instanceId = instance.id();
+			}else if (VM.isStopping(instance)) {
+				final int sleep = azureConfig.getCxEngineTimeoutSec();
+				log.debug("...Azure VM is stopping, sleeping {}s", sleep);
+				Thread.sleep(sleep * 1000);
+				log.debug("...Azure VM is stopping, starting instance...");
+				instance = azureClient.start(instanceId);
 			} else if (!VM.isRunning(instance)) {
+				log.debug("...Azure VM is stopped, starting instance...");
 				instance = azureClient.start(instanceId);
 			} else {
 				// host is running
+				log.debug("...Azure VM is running...");
 			}
 			
 			final Host host = createHost(name, instance);
@@ -305,7 +318,7 @@ public class AzureEngines implements CxEngines {
     		instance = lookupVirtualMachine(engine, "stop");
     		instanceId = instance.id();
 			
-			if (azureConfig.isTerminateOnStop() || forceTerminate) {	
+			if (cxConfig.isTerminateOnStop() || forceTerminate) {
 				action = "TerminatedEngine";
 				azureClient.terminate(instanceId);
 				provisionedEngines.remove(name);
@@ -450,7 +463,8 @@ public class AzureEngines implements CxEngines {
 	@Override
 	public String toString() {
 		return MoreObjects.toStringHelper(this)
-				.add("config", azureConfig)
+				.add("azureConfig", azureConfig)
+				.add("cxConfig", cxConfig)
 				.toString();
 	}
 }
