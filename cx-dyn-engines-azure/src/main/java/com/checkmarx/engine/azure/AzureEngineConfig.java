@@ -21,6 +21,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 @Profile("azure")
@@ -29,6 +30,14 @@ import java.util.Map;
 @JsonIgnoreProperties("$$beanFactory")
 public class AzureEngineConfig {
 
+	@NotNull
+	private String subscriptionId; //Azure subscription Id
+	@NotNull
+	private String clientId; //clientId the active directory application client id. Also known as Application Id which Identifies the application that is using the token.
+	@NotNull
+	private String secret; //the authentication secret for the application.
+	@NotNull
+	private String tenantId; //the domain or tenant id containing this application.
 	private boolean assignPublicIP = false;
 	private int cxEngineTimeoutSec=300;
 	private String cxVersion;
@@ -48,6 +57,38 @@ public class AzureEngineConfig {
 	private boolean usePublicUrlForMonitor = false;
 	private String scriptOnLaunch;
 	private String scriptOnTerminate;
+
+	public String getSubscriptionId() {
+		return subscriptionId;
+	}
+
+	public void setSubscriptionId(String subscriptionId) {
+		this.subscriptionId = subscriptionId;
+	}
+
+	public String getClientId() {
+		return clientId;
+	}
+
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
+	}
+
+	public String getSecret() {
+		return secret;
+	}
+
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}
+
+	public String getTenantId() {
+		return tenantId;
+	}
+
+	public void setDomainId(String tenantId) {
+		this.tenantId = tenantId;
+	}
 
 	/**
 	 * Maps EngineSize to Azure instanceType;

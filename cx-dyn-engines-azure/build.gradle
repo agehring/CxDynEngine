@@ -8,7 +8,9 @@ dependencies {
         'com.microsoft.azure:azure',
         'com.microsoft.azure:azure-mgmt-compute',
         'com.microsoft.azure:azure-mgmt-resources',
-        'com.google.code.gson:gson:2.8.5'
+        'com.google.code.gson:gson:2.8.5',
+        'com.microsoft.azure:azure-keyvault-secrets-spring-boot-starter',
+        'com.microsoft.azure:azure-storage-spring-boot-starter'
     )
 }
 
@@ -16,7 +18,6 @@ dependencies {
     all*.exclude module : 'spring-boot-starter-logging'
 }*/
 configurations {    
-    //testCompile.exclude group: "ch.qos.logback", module: "logback-classic"
     all*.exclude group: "ch.qos.logback", module: "logback-classic"
 }
 

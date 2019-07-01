@@ -64,7 +64,7 @@ public class AzureClientTests extends AzureSpringTest {
 		log.trace("testLaunch()");
 		
 		final String name = "cx-test1";
-		final String instanceType = "t2.small";
+		final String instanceType = "Standard_B2s";
 		//final String instanceType = "m4.large";
 		final String version = "8.9.0-HF1";
 		final CxServerRole role = CxServerRole.ENGINE;

@@ -48,31 +48,25 @@ import org.springframework.retry.annotation.EnableRetry;
 public class AzureApplicationConfig {
 	
 	private static final Logger log = LoggerFactory.getLogger(AzureApplicationConfig.class);
-	
-	public AzureApplicationConfig() {
+	private final AzureEngineConfig config;
+
+	public AzureApplicationConfig(AzureEngineConfig config) {
+		this.config = config;
 		log.info("ctor()");
 	}
 
 	@Bean
 	public Azure getAzure(){
 		//https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md
+
 		ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(
-				"b293215c-dd52-4546-b84d-c3dc8f57f648", "6677be72-cda1-47e8-ae4a-320b4692c7d7",
-				"6p8JQeNCPs7=Agv?4UiPnEGVlgT.HBD+", AzureEnvironment.AZURE);
-		Azure azure = Azure.authenticate(credentials).withSubscription("c56687e8-b5b1-46f5-8dd3-84957bd57135");
+				config.getClientId(), config.getTenantId(),
+				config.getSecret(), AzureEnvironment.AZURE);
+		return Azure.authenticate(credentials).withSubscription(config.getSubscriptionId());
 		//Or cert
 		/*ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(
 				client, tenant, pfxCertificatePath, password, AzureEnvironment.AZURE);
 		Azure azure = Azure.authenticate(credentials).withSubscription(subscriptionId);*/
 		//Or credential file
-		// try {
-		//az login
-		//az login --service-principal --username b293215c-dd52-4546-b84d-c3dc8f57f648 --password 6p8JQeNCPs7=Agv?4UiPnEGVlgT.HBD+ --tenant 6677be72-cda1-47e8-ae4a-320b4692c7d7
-		//az account set --subscription <subscription Id>
-		//azure = Azure.authenticate(AzureCliCredentials.create()).withDefaultSubscription();
-		// }catch (IOException e){
-
-		//}
-		return azure;
 	}
 }
