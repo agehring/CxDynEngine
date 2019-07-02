@@ -1,8 +1,7 @@
 description = 'Checkmarx CxSAST Dynamic Engine Azure Library'
 
 dependencies {
-    implementation project(':cx-dyn-engines-core'){
-    }
+    implementation project(':cx-dyn-engines-core')
     implementation (
         'com.microsoft.azure:azure-spring-boot-starter',
         'com.microsoft.azure:azure',
