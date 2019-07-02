@@ -27,6 +27,7 @@
 package com.checkmarx.engine.azure;
 
 import com.checkmarx.engine.spring.CoreApplicationConfig;
+import com.google.common.base.Strings;
 import com.microsoft.azure.AzureEnvironment;
 import com.microsoft.azure.credentials.ApplicationTokenCredentials;
 import com.microsoft.azure.management.Azure;
@@ -36,6 +37,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.retry.annotation.EnableRetry;
+
+import java.io.IOException;
 
 /**
  * Spring Boot configuration
@@ -62,6 +65,13 @@ public class AzureApplicationConfig {
 		ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(
 				config.getClientId(), config.getTenantId(),
 				config.getSecret(), AzureEnvironment.AZURE);
+		if(Strings.isNullOrEmpty(config.getSubscriptionId())) {
+			try {
+				return Azure.authenticate(credentials).withDefaultSubscription();
+			}catch (IOException e){
+				throw new RuntimeException("Error creating Azure Bean");
+			}
+		}
 		return Azure.authenticate(credentials).withSubscription(config.getSubscriptionId());
 		//Or cert
 		/*ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(

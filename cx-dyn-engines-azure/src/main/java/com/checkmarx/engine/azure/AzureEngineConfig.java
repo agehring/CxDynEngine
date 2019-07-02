@@ -30,7 +30,6 @@ import java.util.Map;
 @JsonIgnoreProperties("$$beanFactory")
 public class AzureEngineConfig {
 
-	@NotNull
 	private String subscriptionId; //Azure subscription Id
 	@NotNull
 	private String clientId; //clientId the active directory application client id. Also known as Application Id which Identifies the application that is using the token.
@@ -86,7 +85,7 @@ public class AzureEngineConfig {
 		return tenantId;
 	}
 
-	public void setDomainId(String tenantId) {
+	public void setTenantId(String tenantId) {
 		this.tenantId = tenantId;
 	}
 

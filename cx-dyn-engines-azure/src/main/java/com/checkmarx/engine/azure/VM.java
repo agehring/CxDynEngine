@@ -51,7 +51,8 @@ public class VM {
 	}
 
 	public static String getName(@NotNull VirtualMachine instance) {
-		return getTag(instance, AzureConstants.NAME_TAG);
+		//return getTag(instance, AzureConstants.NAME_TAG);
+		return instance.name();
 	}
 
 	public static String getTag(@NotNull VirtualMachine instance, String key) {
