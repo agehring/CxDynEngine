@@ -28,7 +28,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 
 /**
- * @author randy@checkmarx.comer
+ * @author randy@checkmarx.com
  *
  */
 public class DynamicEngine implements Comparable<DynamicEngine> {
@@ -87,11 +87,13 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		engine.scanId = scanId;
 		engine.engineId = engineId;
 		engine.launchTime = launchTime;
+		/*
 		if (isRunning) {
 		    // TODO-RJG: should we pass state?
 			engine.state = State.IDLE;
 			engine.timeToExpire = engine.calcExpirationTime();
 		}
+		*/
 		return engine;
 	}
 	

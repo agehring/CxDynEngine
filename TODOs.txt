@@ -16,13 +16,13 @@ Features
 [X] Populate active scan map from running engines
 [X] Refactor EngineService/EngineMonitor class structure
 [X] Test NumberOfPromotableScans = 0 (Engine config)
+[X] Clean up unit tests (remove environment dependencies)
 [ ] Support token auth
 [ ] Pool level termination option - stop set at pool level
 [ ] Add minimum provisioned engines
 [ ] Move cx credentials out of CxConfig
 [ ] Add command for creating encrypted values
 [ ] Add AWS credentials
-[ ] Clean up unit tests (remove environment dependencies)
 [ ] Add concurrent scans per engine
 [ ] Clean up logging
 [ ] Refactor EnginePool/DynamicEngine state machine

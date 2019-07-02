@@ -39,6 +39,7 @@ public class AwsEngineConfig {
 	private int launchTimeoutSec=60;
 	private int monitorPollingIntervalSecs = 10;
 	private String securityGroup;
+	private int stopWaitTimeSecs = 30;
 	private String subnetId;
 	private boolean terminateOnStop;
 	private boolean usePublicUrlForCx = false;
@@ -130,7 +131,7 @@ public class AwsEngineConfig {
 		this.securityGroup = securityGroup;
 	}
 
-	/**
+    /**
 	 * Timeout to wait for Running state after EC2 instance launch
 	 */
 	public int getLaunchTimeoutSec() {
@@ -141,6 +142,17 @@ public class AwsEngineConfig {
 		this.launchTimeoutSec = launchTimeoutSec;
 	}
 
+	/**
+	 * Time to wait for stopping engine before attempting to start  
+	 */
+    public int getStopWaitTimeSecs() {
+        return stopWaitTimeSecs;
+    }
+
+    public void setStopWaitTimeSecs(int stopWaitTimeSecs) {
+        this.stopWaitTimeSecs = stopWaitTimeSecs;
+    }
+
 	public String getSubnetId() {
 		return subnetId;
 	}
@@ -149,10 +161,12 @@ public class AwsEngineConfig {
 		this.subnetId = subnetId;
 	}
 
+    @Deprecated
 	public boolean isTerminateOnStop() {
 		return terminateOnStop;
 	}
 
+	@Deprecated
 	public void setTerminateOnStop(boolean terminateOnStop) {
 		this.terminateOnStop = terminateOnStop;
 	}
@@ -249,6 +263,7 @@ public class AwsEngineConfig {
 				.add("launchTimeoutSec", launchTimeoutSec)
 				.add("scriptOnLaunch", scriptOnLaunch)
 				.add("scriptOnTerminate", scriptOnTerminate)
+				.add("stopWaitTimeSecs", stopWaitTimeSecs)
 				.add("terminateOnStop", terminateOnStop)
 				.add("usePublicUrlForCx", usePublicUrlForCx)
 				.add("usePublicUrlForMonitor", usePublicUrlForMonitor)

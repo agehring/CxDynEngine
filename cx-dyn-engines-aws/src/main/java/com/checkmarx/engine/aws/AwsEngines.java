@@ -20,7 +20,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+
 import javax.validation.constraints.NotNull;
+
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +33,8 @@ import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
+import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.DynamicEngine;
-import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
@@ -60,6 +62,7 @@ public class AwsEngines implements CxEngines {
 
 	private static final Logger log = LoggerFactory.getLogger(AwsEngines.class);
 	
+    private final CxConfig cxConfig;
 	private final AwsEngineConfig awsConfig;
 	private final EnginePoolConfig poolConfig;
 	private final AwsComputeClient ec2Client;
@@ -81,12 +84,14 @@ public class AwsEngines implements CxEngines {
 	private final Map<String, String> engineTypeMap;
 	
 	public AwsEngines(
+	        CxConfig cxConfig,
 			EnginePoolConfig poolConfig,
 			AwsComputeClient awsClient, 
 			CxEngineClient engineClient,
 			TaskManager taskManager) {
 		
-		this.poolConfig = poolConfig;
+	    this.cxConfig = cxConfig;
+	    this.poolConfig = poolConfig;
 		this.ec2Client = awsClient;
 		this.awsConfig = awsClient.getConfig(); 
 		this.engineClient = engineClient;
@@ -180,11 +185,6 @@ public class AwsEngines implements CxEngines {
 				launchTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
-			if (Strings.isNullOrEmpty(scanId)) {
-	            engine.setState(State.IDLE);
-			} else {
-	            engine.setState(State.SCANNING);
-			}
 		}
 		return engine;
 	}
@@ -223,8 +223,6 @@ public class AwsEngines implements CxEngines {
 	public void launch(DynamicEngine engine, EngineSize size, boolean waitForSpinup) throws InterruptedException {
 		log.debug("launch(): {}; size={}; wait={}", engine, size, waitForSpinup);
 		
-		findEngines();
-		
 		final String name = engine.getName();
 		final String type = engineTypeMap.get(size.getName());
 		final Map<String, String> tags = createEngineTags(size.getName());
@@ -237,19 +235,33 @@ public class AwsEngines implements CxEngines {
 		boolean success = false;
 		final Stopwatch timer = Stopwatch.createStarted();
 		try {
-			if (instance == null) {
-				instance = launchEngine(engine, name, type, tags);
+			if (instance != null) {
+	            log.debug("...EC2 instance is provisioned...");
+			} else {
+			    instance = launchEngine(engine, name, type, tags);
 			}
 	
-			instanceId = instance.getInstanceId();
+			// refresh instance state
+            instanceId = instance.getInstanceId();
+            instance = ec2Client.describe(instance.getInstanceId());
+            provisionedEngines.put(name, instance);
 			
 			if (Ec2.isTerminated(instance)) {
+			    log.debug("...EC2 instance is terminated, launching new instance...");
 				instance = launchEngine(engine, name, type, tags);
 				instanceId = instance.getInstanceId();
+            } else if (Ec2.isStopping(instance)) {
+                final int sleep = awsConfig.getStopWaitTimeSecs();
+                log.debug("...EC2 instance is stopping, sleeping {}s...", sleep);
+                Thread.sleep(sleep * 1000);
+                log.debug("...EC2 instance is stopping, starting instance...");
+                instance = ec2Client.start(instanceId);
 			} else if (!Ec2.isRunning(instance)) {
+                log.debug("...EC2 instance is stopped, starting instance...");
 				instance = ec2Client.start(instanceId);
 			} else {
-				// host is running
+			    // this will happen if engine was launched
+                log.debug("...EC2 instance is running...");
 			}
 			
 			final Host host = createHost(name, instance);
@@ -304,7 +316,7 @@ public class AwsEngines implements CxEngines {
     		instance = lookupInstance(engine, "stop");
     		instanceId = instance.getInstanceId();
 			
-			if (awsConfig.isTerminateOnStop() || forceTerminate) {	
+			if (cxConfig.isTerminateOnStop() || forceTerminate) {	
 				action = "TerminatedEngine";
 				ec2Client.terminate(instanceId);
 				provisionedEngines.remove(name);
@@ -312,6 +324,7 @@ public class AwsEngines implements CxEngines {
 			} else {
 				ec2Client.stop(instanceId);
 				instance = ec2Client.describe(instanceId);
+				// update the map with updated instance
 				provisionedEngines.put(name, instance);
 			}
 			success = true;
@@ -443,7 +456,8 @@ public class AwsEngines implements CxEngines {
 	@Override
 	public String toString() {
 		return MoreObjects.toStringHelper(this)
-				.add("config", awsConfig)
+				.add("awsConfig", awsConfig)
+				.add("cxConfig", cxConfig)
 				.toString();
 	}
 }

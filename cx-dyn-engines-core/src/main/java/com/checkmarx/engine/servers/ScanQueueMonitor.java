@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.checkmarx.engine.domain.EnginePool;
 
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +91,7 @@ public class ScanQueueMonitor implements Runnable {
 	
 	public void onPreExistingScan(ScanRequest scan) {
         log.debug("onPreExistingScan(): {}", scan);
+        concurrentScans.incrementAndGet();
         activeScanMap.put(scan.getId(), scan);
 	}
 	
@@ -106,10 +109,10 @@ public class ScanQueueMonitor implements Runnable {
 
 		final long scanId = scan.getId();
 		//if the scan loc is zero, it is not ready to determine if applicable to Dynamic Engines
-		//if the calcEngineSize ends up with null, their is no applicable engine, therefore Dynamic Engines ignores
+		//if the calcEngineSize ends up with null, there is no applicable engine, therefore Dynamic Engines ignores
 		//TODO replace this block when static engines are managed by Dynamic Engines
 		if(enginePool.calcEngineSize(scan.getLoc()) == null && scan.getLoc() >= 0){
-			log.debug("Scan with id {} with loc {} is being ignored by DynamicEngines", scan.getId(), scan.getLoc());
+			log.info("No engine pool for scan size, ignoring; scanId={}, loc={}", scan.getId(), scan.getLoc());
 			return;
 		}
 		switch (scan.getStatus()) {
@@ -174,6 +177,8 @@ public class ScanQueueMonitor implements Runnable {
 	private void onCompleted(final long scanId, ScanRequest scan) {
 		log.trace("onCompleted(): {}", scan);
 
+        // FIXME-rjg: if EngineManager.ScanFinisher fails to unregister engine, 
+		//   it will remain registered and blocked causing issues downstream
 		if (activeScanMap.remove(scanId) == null ) {
 			return;
 		}
@@ -183,10 +188,16 @@ public class ScanQueueMonitor implements Runnable {
 		log.debug("Scan complete, adding to scanFinished queue; id={}", scanId);
 		workingScans.remove(scanId);
 		scanFinished.add(scan);
-		log.info("Scan finished: {}; concurrentScans={}", scan, count);
+		log.info("Scan finished: scanTime={}s; {}; concurrentScans={}", 
+		        calcScanTime(scan), scan, count);
 	}
 
-	private void onOther(ScanRequest scan) {
+	private long calcScanTime(ScanRequest scan) {
+	    final Duration duration = new Duration(scan.getEngineStartedOn(), DateTime.now());
+        return duration.getStandardSeconds();
+    }
+
+    private void onOther(ScanRequest scan) {
 		log.trace("onOther(): {}", scan);
 		// do nothing
 	}

@@ -16,13 +16,12 @@ package com.checkmarx.engine.rest;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.ClientHttpRequestFactorySupplier;
@@ -35,7 +34,6 @@ import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.rest.model.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
-import org.springframework.web.client.HttpServerErrorException;
 
 public abstract class BaseHttpClient {
 	

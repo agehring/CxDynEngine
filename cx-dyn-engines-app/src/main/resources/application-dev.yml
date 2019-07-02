@@ -7,7 +7,7 @@ logging:
   level:
     com:
       checkmarx:
-        engine: INFO
+        engine: DEBUG
     org:
       apache:
         http: INFO
@@ -22,8 +22,9 @@ cx:
   queueCapacity: 100
   queueIntervalSecs: 15
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
-  restUrl: http://54.84.164.197
+  restUrl: http://54.90.238.36
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
+  terminateOnStop: false
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
 
@@ -42,19 +43,19 @@ cx-aws-engine:
   monitorPollingIntervalSecs: 10  #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
   scriptOnLaunch: scripts/launch.groovy
   scriptOnTerminate: scripts/terminate.groovy
+  stopWaitTimeSecs: 30
   securityGroup: sg-a0e70bdc      #AWS Security Group to apply to launched Engines
   subnetId: subnet-cdc39b84       #AWS Subnet ID to launch Engines into
   tagMap:
 #    client: abc
 #    component: cx-de
     owner: Randy
-  terminateOnStop: true
   usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: true    #DE will monitor if an Engine is up and running based on Public or Private IP
 
   
 cx-engine:
-  engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
+  engineExpireIntervalSecs: 240   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
   enginePrefix: cx-engine         #Prefix given to naming the instance within the cloud provider
   pool:
     - count: 3                    #Maximum number of instances that will be launched for this pool mapping
