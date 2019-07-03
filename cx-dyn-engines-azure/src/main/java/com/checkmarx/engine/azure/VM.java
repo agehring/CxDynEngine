@@ -26,7 +26,7 @@ public class VM {
 		PENDING(PowerState.STARTING.toString()),
 		RUNNING(PowerState.RUNNING.toString()),
 		SHUTTING_DOWN(PowerState.STOPPING.toString()),
-		TERMINATED(PowerState.STOPPED.toString()),
+		TERMINATED(PowerState.DEALLOCATED.toString()),
 		STOPPING(PowerState.DEALLOCATING.toString()),
 		STOPPED(PowerState.STOPPED.toString()),
 		UNKNOWN(PowerState.UNKNOWN.toString());

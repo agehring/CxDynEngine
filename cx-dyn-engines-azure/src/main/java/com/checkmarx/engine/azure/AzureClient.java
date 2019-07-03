@@ -16,10 +16,7 @@ package com.checkmarx.engine.azure;
 import com.checkmarx.engine.utils.TaskManager;
 import com.google.common.base.Stopwatch;
 import com.microsoft.azure.management.Azure;
-import com.microsoft.azure.management.compute.PowerState;
-import com.microsoft.azure.management.compute.VirtualMachine;
-import com.microsoft.azure.management.compute.VirtualMachineCustomImage;
-import com.microsoft.azure.management.compute.VirtualMachineSizeTypes;
+import com.microsoft.azure.management.compute.*;
 import com.microsoft.azure.management.network.Network;
 import com.microsoft.azure.management.network.PublicIPAddress;
 import com.microsoft.azure.management.resources.fluentcore.arm.Region;
@@ -30,7 +27,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -109,6 +105,7 @@ public class AzureClient implements AzureComputeClient {
 						.withAdminUsername(config.getServerAdmin())
 						.withAdminPassword(config.getServerPassword())
 						.withComputerName(name)
+						//.withOSDiskSizeInGB(config.getDiskSize().intValue()) DISK size will be determined by Image
 						.withSize(VirtualMachineSizeTypes.fromString(instanceType))
 						.withTags(tags);
 			}
@@ -125,6 +122,7 @@ public class AzureClient implements AzureComputeClient {
 						.withAdminUsername(config.getServerAdmin())
 						.withAdminPassword(config.getServerPassword())
 						.withComputerName(name)
+						//.withOSDiskSizeInGB(config.getDiskSize().intValue()) DISK size will be determined by Image
 						.withSize(VirtualMachineSizeTypes.fromString(instanceType))
 						.withTags(tags);
 			}
@@ -136,7 +134,7 @@ public class AzureClient implements AzureComputeClient {
 			// do not retry, so throw original exception
 			handleLaunchException(e, instance, name);
 			throw new InterruptedException(e.getMessage());
-		} catch (Throwable t) {
+		} catch (Exception t) {
 			// retry, so throw RuntimeException
 			handleLaunchException(t, instance, name);
 			throw new RuntimeException("Failed to launch Azure VirtualMachine instance", t);

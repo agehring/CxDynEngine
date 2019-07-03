@@ -15,7 +15,6 @@ package com.checkmarx.engine.azure;
 
 import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.domain.DynamicEngine;
-import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EnginePoolConfig;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
@@ -70,12 +69,12 @@ public class AzureEngines implements CxEngines {
     private final ExecutorService executor;
 
 	/**
-	 * Maps engine name to EC2 instance; key=engine name
+	 * Maps engine name to Azure instance; key=engine name
 	 */
 	private final Map<String, VirtualMachine> provisionedEngines = Maps.newConcurrentMap();
 	
 	/**
-	 * Maps EngineSize to EC2 instanceType;
+	 * Maps EngineSize to Azure instanceType;
 	 * key=size (name), 
 	 * value=ec2 instance type (e.g. m4.large)
 	 */
@@ -277,11 +276,11 @@ public class AzureEngines implements CxEngines {
 			//engine.setState(State.IDLE);
 			success = true;
         } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
-            log.warn("Error occurred while launching azure EC2 instance; name={}; {}", name, engine, e);
+            log.warn("Error occurred while launching azure Azure instance; name={}; {}", name, engine, e);
             handleLaunchException(instanceId, e);
             throw new InterruptedException(e.getMessage());
 		} catch (Throwable e) {
-			log.error("Error occurred while launching azure EC2 instance; name={}; {}", name, engine, e);
+			log.error("Error occurred while launching azure Azure instance; name={}; {}", name, engine, e);
             handleLaunchException(instanceId, e);
             throw new RuntimeException("Error launching engine", e);
 		} finally {
@@ -292,8 +291,14 @@ public class AzureEngines implements CxEngines {
 	
 	private void handleLaunchException(String instanceId, Throwable e) {
         if (!Strings.isNullOrEmpty(instanceId)) {
-            log.warn("Terminating instance due to error; instanceId={}", instanceId);
-            azureClient.terminate(instanceId);
+			if(cxConfig.isTerminateOnStop()) {
+				log.warn("Terminating instance due to error; instanceId={}", instanceId);
+				azureClient.terminate(instanceId);
+			}
+			else {
+				log.warn("Shutting down instance due to error; instanceId={}", instanceId);
+				azureClient.stop(instanceId);
+			}
         }
 	}
 	
@@ -393,10 +398,10 @@ public class AzureEngines implements CxEngines {
         return instance;
     }
 
-	private VirtualMachine launchEngine(final DynamicEngine engine, final String name, 
+	private VirtualMachine launchEngine(final DynamicEngine engine, final String name,
 			final String type, final Map<String, String> tags) throws Exception {
 		log.debug("launchEngine(): name={}; type={}", name, type);
-		
+
 		final VirtualMachine instance = azureClient.launch(name, type, tags);
 		provisionedEngines.put(name, instance);
 		return instance;
