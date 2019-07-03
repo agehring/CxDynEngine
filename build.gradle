@@ -60,7 +60,7 @@ subprojects {
             exclude group: 'org.codehaus.groovy', module: 'groovy-test-junit5'
         }
         if (project.hasProperty("azure")) {
-            println("Using outdated guava as per azure")
+            println("...Using outdated guava as per azure requirements...")
             implementation ('com.google.guava:guava:20.0')
         }else{
             implementation ('com.google.guava:guava')

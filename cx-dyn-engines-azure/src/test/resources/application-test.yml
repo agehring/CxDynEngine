@@ -7,36 +7,41 @@ cx:
   queueCapacity: 100
   queueIntervalSecs: 15
   queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
-  restUrl: http://54.91.217.228
+  restUrl: http://cxmanager
   timeoutSecs: 120                #HTTP client request timeout (connection and read)
   userName: xxx                   #Checkmarx user (must have access to register engines)
   password: xxx                   #Checkmarx password
-  notificationId: arn:azure:sns:us-east-1:275043232443:DynamicEngines
+  notificationId: XXXX
+  terminate-on-stop: false
 
 cx-azure-engine:
+  client-id: XXXX
+  secret: XXXX
+  tenant-id: XXXX
+  subscription-id: XXXX
   assignPublicIP: true
   cxEngineTimeoutSec: 600         #how many seconds to wait for instance to launch before considered a failure
-  cxVersion: 8.8.0-HF1
+  cxVersion: 8.9.0-HF1
   engineSizeMap:
-    S: t3.medium
-    M: t3.large
-    L: t3.xlarge
-  iamProfile: allow-ssm
-  imageId: ami-05245c65f7b0c5885  #AMI ID of the Engine Server
-  keyName: cx-servers             #AWS Key name for support purposes
+    S: Standard_B2s
+    M: Standard_B2ms
+    L: Standard_DS2_v2
   launchTimeoutSec: 60            #Amount of time to wait for an instance to move out of PENDING state in AWS
   monitorPollingIntervalSecs: 10  #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
   scriptOnLaunch: scripts/launch.groovy
   scriptOnTerminate: scripts/terminate.groovy
-  securityGroup: sg-a0e70bdc      #AWS Security Group to apply to launched Engines
-  subnetId: subnet-cdc39b84       #AWS Subnet ID to launch Engines into
   tagMap:
-  #  client: abc
-  #  component: cx-de
+    Component: cx-de
     Owner: Ken
-  terminateOnStop: true
   usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: true    #DE will monitor if an Engine is up and running based on Public or Private IP
+  image-name: DE
+  network-name: DE
+  subnet-name: DE
+  region: eastus
+  resource-group: DE-resources
+  server-admin: engine
+  server-password: XXXX
 
 cx-engine:
   engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)

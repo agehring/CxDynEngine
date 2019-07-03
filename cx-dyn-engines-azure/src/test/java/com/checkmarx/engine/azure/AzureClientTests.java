@@ -22,10 +22,8 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.List;
 import java.util.Map;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.*;
@@ -36,7 +34,7 @@ public class AzureClientTests extends AzureSpringTest {
 	
 	@Autowired
 	private AzureComputeClient azureClient;
-	
+
 	@Autowired
 	private AzureEngineConfig config;
 
@@ -45,7 +43,7 @@ public class AzureClientTests extends AzureSpringTest {
 	@Before
 	public void setUp() throws Exception {
 		log.trace("setup()");
-	
+
 		Assume.assumeTrue(runAzureIntegrationTests());
 
 		assertThat(azureClient, is(notNullValue()));
@@ -75,14 +73,42 @@ public class AzureClientTests extends AzureSpringTest {
 		instances.add(instance.id());
 		
 		assertNotNull(instance);
-		assertThat(VM.getName(instance), is(name));
+		assertThat(instance.name(), is(name));
 		assertThat(VM.getTag(instance, CxEngines.CX_ROLE_TAG), is(role.toString()));
 		assertThat(VM.getTag(instance, CxEngines.CX_VERSION_TAG), is(version));
-		assertEquals(instanceType, instance.size());
+		assertEquals(instanceType.toUpperCase(), instance.size().toString().toUpperCase());
 		//assertEquals(config.getImageId(), instance.getImageId());
 		assertEquals(config.getSubnetName(), instance.getPrimaryNetworkInterface().primaryIPConfiguration().subnetName());
 	}
-	
+
+	@Test
+	public void testLaunchStart() throws Exception {
+		log.trace("testLaunchStart()");
+
+		final String name = "cx-test1";
+		final String instanceType = "Standard_B2s";
+		//final String instanceType = "m4.large";
+		final String version = "8.9.0-HF1";
+		final CxServerRole role = CxServerRole.ENGINE;
+		final Map<String, String> tags = AzureEngines.createCxTags(role, version);
+		List<VirtualMachine> vms = azureClient.find(tags);
+		for(VirtualMachine vm : vms){
+			log.info(vm.powerState().toString());
+			log.info(vm.id());
+			log.info(vm.vmId());
+			if(!VM.isRunning(vm)){
+				azureClient.start(vm.id());
+			}
+			else {
+				//azureClient.stop(vm.id());
+				azureClient.terminate(vm.id());
+			}
+		}
+
+		assert(true);
+	}
+
+
 	@Test
 	@Ignore
 	public void testTerminate() {
@@ -92,18 +118,6 @@ public class AzureClientTests extends AzureSpringTest {
 		azureClient.terminate(instanceId);
 	}
 
-	@Test(expected = RuntimeException.class)
-	public void testDescribe_Retry() {
-		log.trace("testDescribe_Retry()");
-
-		// instance doesn't exist
-		final String instanceId = "i-05bb6ec6c7aba753c";
-		
-		final VirtualMachine instance = azureClient.describe(instanceId);
-		log.debug("{}", instance);
-		fail("RuntimeException expected");
-	}
-	
 	@Test
 	@Ignore
 	public void testDescribe() {

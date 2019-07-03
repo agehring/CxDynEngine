@@ -30,12 +30,12 @@ cx:
 cx-aws-engine:
   assignPublicIP: true
   cxEngineTimeoutSec: 600 #how many seconds to wait for instance to launch before considered a failure
-  cxVersion: 8.8.0.72
-  engineSizeMap:
-    S: t3.large
-    M: m5.xlarge
-    L: r5.xlarge
-    XL: r5.2xlarge
+  cxVersion: 8.9.0-HF1
+#  engineSizeMap:
+#    S: t3.large
+#    M: m5.xlarge
+#    L: r5.xlarge
+#    XL: r5.2xlarge
   iamProfile: cx-de
   imageId: ami-04e7c91826d179728 #AMI ID of the Engine Server
   keyName: Cx_DE #AWS Key name for support purposes
@@ -51,6 +51,34 @@ cx-aws-engine:
 #    component: dynamic-engine
   usePublicUrlForCx: false #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: false #DE will monitor if an Engine is up and running based on Public or Private IP
+
+cx-azure-engine:
+  client-id: XXXX #Service Principal client id
+  secret: XXXX #Service Principal secret
+  tenant-id: XXXX #Azure tenant / domain id
+  assignPublicIP: false
+  cxEngineTimeoutSec: 600         #how many seconds to wait for instance to launch before considered a failure
+  cxVersion: 8.9.0-HF1
+#  engineSizeMap: #Azure Instance size mapping
+#    S: Standard_B2s
+#    M: Standard_B2ms
+#    L: Standard_DS2_v2
+  launchTimeoutSec: 60            #Amount of time to wait for an instance to move out of PENDING state in AWS
+  monitorPollingIntervalSecs: 10  #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
+  scriptOnLaunch: scripts/launch.groovy
+  scriptOnTerminate: scripts/terminate.groovy
+#  tagMap: #Tags that will be applied to instance (used to listing/tracking available engines)
+#    Component: cx-de
+#    Owner: abc
+  usePublicUrlForCx: false        #Cx will register the Engine with Public or Private IP
+  usePublicUrlForMonitor: false    #DE will monitor if an Engine is up and running based on Public or Private IP
+  image-name: DE #Name of the CxEngine Image that will be used
+  network-name: DE #Azure Network name to launch VMs into
+  subnet-name: DE #Subnet name to launch VMs into
+  region: eastus #Azure Region
+  resource-group: DE-resources #Azure Resource group
+  server-admin: cxengine #Default Administrator user
+  server-password: XXXX #Default Administrator password
 
 cx-engine:
   engineExpireIntervalSecs: 3600 #Blocks of time an instance is paid by - this is used for expiring/termination of instances
