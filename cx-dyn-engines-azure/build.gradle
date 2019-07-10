@@ -13,9 +13,6 @@ dependencies {
     )
 }
 
-/*configurations {
-    all*.exclude module : 'spring-boot-starter-logging'
-}*/
 configurations {    
     all*.exclude group: "ch.qos.logback", module: "logback-classic"
 }

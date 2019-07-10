@@ -128,15 +128,6 @@ public class AzureEngineConfig {
 		this.cxVersion = cxVersion;
 	}
 
-	/*
-	public String getIamProfile() {
-		return iamProfile;
-	}
-
-	public void setIamProfile(String iamProfile) {
-		this.iamProfile = iamProfile;
-	}*/
-
 	public String getImageName() {
 		return imageName;
 	}
@@ -155,14 +146,6 @@ public class AzureEngineConfig {
 	public void setMonitorPollingIntervalSecs(int monitorPollingIntervalSecs) {
 		this.monitorPollingIntervalSecs = monitorPollingIntervalSecs;
 	}
-
-	/*public String getSecurityGroup() {
-		return securityGroup;
-	}*/
-
-	/*public void setSecurityGroup(String securityGroup) {
-		this.securityGroup = securityGroup;
-	}*/
 
 	/**
 	 * Timeout to wait for Running state after Azure instance launch
@@ -312,13 +295,17 @@ public class AzureEngineConfig {
 
 	public String toString() {
 		return MoreObjects.toStringHelper(this)
+				.add("tenantId", tenantId)
+				.add("clientId", clientId)
 				.add("assignPublicIP", assignPublicIP)
 				.add("cxEngineTimeoutSec", cxEngineTimeoutSec)
 				.add("cxVersion", cxVersion)
-				//.add("iamProfile", iamProfile)
 				.add("imageName", imageName)
+				.add("region", region)
+				.add("resourceGroup", resourceGroup)
+				.add("network", networkName)
+				.add("subnet", subnetName)
 				.add("monitorPollingIntervalSecs", monitorPollingIntervalSecs)
-				//.add("securityGroup", securityGroup)
 				.add("launchTimeoutSec", launchTimeoutSec)
 				.add("scriptOnLaunch", scriptOnLaunch)
 				.add("scriptOnTerminate", scriptOnTerminate)

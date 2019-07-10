@@ -26,6 +26,7 @@ public class AzureNotification implements Notification {
 
     private static final Logger log = LoggerFactory.getLogger(AzureNotification.class);
 
+    //Noop - Azure Notification Hub will need client specific requirements
     @Override
     public void sendNotification(String subject, String message, Throwable throwable) {
         log.warn("Notification: Subject={}, Message={}, Exception={}", subject, message, ExceptionUtils.getMessage(throwable));

@@ -75,7 +75,7 @@ public class AzureApplicationConfig {
 			}
 		}
 		return Azure.authenticate(credentials).withSubscription(config.getSubscriptionId());
-		//Or cert
+		//TODO - Or cert
 		/*ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(
 				client, tenant, pfxCertificatePath, password, AzureEnvironment.AZURE);
 		Azure azure = Azure.authenticate(credentials).withSubscription(subscriptionId);*/
