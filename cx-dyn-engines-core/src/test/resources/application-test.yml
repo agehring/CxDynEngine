@@ -1,0 +1,37 @@
+cx:
+  cxEngineUseSSL: false           #Use http/https to monitor and register Engines with
+  concurrentScanLimit: 3          #Max number of concurrent scans (Engines) that DE will manage
+  cxEnginePrefix: '**'            #Prefix used within Registering engine in CX UI
+  expireEngineBufferMins: 1       #Grace period before expiring and engine
+  idleMonitorSecs: 30             #How often to check idle engines to determine if expired (ready for termination)
+  queueCapacity: 100
+  queueIntervalSecs: 15
+  queueingEngineName: Localhost   #Name given to the Blocked Engine in Cx UI
+  restUrl: http://54.91.211.119
+  timeoutSecs: 120                #HTTP client request timeout (connection and read)
+  terminateOnStop: false
+  password: xxx                   #Checkmarx password
+  userName: admin@cx
+  notificationId: arn:aws:sns:us-east-1:275043232443:DynamicEngines
+cx-engine:
+  engineExpireIntervalSecs: 120   #Blocks of time an instance is paid by - this is used for expiring/termination of instances, normally 3600 (1 hr)
+  enginePrefix: cx-engine         #Prefix given to naming the instance within the cloud provider
+  pool:
+    - count: 3                    #Maximum number of instances that will be launched for this pool mapping
+      minimum: 0                  #Leave as zero to ensure engines are cleaned up, otherwise engines will stay at a minimum count once one is launched
+      scanSize:
+        maxLOC: 19999
+        minLOC: 0
+        name: S                   #Name to map to the cx-aws-engine.engineSizeMap
+    - count: 3
+      minimum: 0
+      scanSize:
+        maxLOC: 99999
+        minLOC: 20000
+        name: M
+    - count: 1
+      minimum: 0
+      scanSize:
+        maxLOC: 999999999
+        minLOC: 100000
+        name: L

@@ -1,0 +1,28 @@
+description = 'Checkmarx CxSAST Dynamic Engine Azure Library'
+
+dependencies {
+    implementation project(':cx-dyn-engines-core')
+    implementation (
+        'com.microsoft.azure:azure-spring-boot-starter',
+        'com.microsoft.azure:azure',
+        'com.microsoft.azure:azure-mgmt-compute',
+        'com.microsoft.azure:azure-mgmt-resources',
+        'com.google.code.gson:gson:2.8.5',
+        'com.microsoft.azure:azure-keyvault-secrets-spring-boot-starter',
+        'com.microsoft.azure:azure-storage-spring-boot-starter'
+    )
+}
+
+configurations {    
+    all*.exclude group: "ch.qos.logback", module: "logback-classic"
+}
+
+jar {
+    manifest {
+        attributes(
+            "Implementation-Title": "Checkmarx Dynamic Engines Azure Library",
+            "Implementation-Version": version
+        )
+    }
+}
+

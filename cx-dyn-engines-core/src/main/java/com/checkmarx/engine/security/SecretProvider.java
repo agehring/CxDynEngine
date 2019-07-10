@@ -29,7 +29,7 @@ package com.checkmarx.engine.security;
 /**
  * Secure storage for secrets.
  * 
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  */
 public interface SecretProvider {

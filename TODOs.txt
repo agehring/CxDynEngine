@@ -11,21 +11,21 @@ Features
 [X] Factor EnginePool out of AwsEngineConfig
 [X] Add SSL support, support self-signed certs
 [X] Support CxSAST v8.6
+[X] Add ec2 post launch script
+[X] Add scanid tag to aws engine server
+[X] Populate active scan map from running engines
+[X] Refactor EngineService/EngineMonitor class structure
+[X] Test NumberOfPromotableScans = 0 (Engine config)
+[X] Clean up unit tests (remove environment dependencies)
 [ ] Support token auth
 [ ] Pool level termination option - stop set at pool level
 [ ] Add minimum provisioned engines
-[X] Test NumberOfPromotableScans = 0 (Engine config)
 [ ] Move cx credentials out of CxConfig
 [ ] Add command for creating encrypted values
 [ ] Add AWS credentials
-[ ] Clean up unit tests (remove environment dependencies)
 [ ] Add concurrent scans per engine
-[ ] Add scanid tag to aws engine server
-[ ] Populate active scan map from running engines
 [ ] Clean up logging
-[ ] Refactor EngineService/EngineMonitor class structure
 [ ] Refactor EnginePool/DynamicEngine state machine
-[ ] Add ec2 post launch script
 [ ] **Refactor EnginePool to include pool queue
 [ ] **Add scriptable EnginePool match criteria
 
@@ -34,6 +34,7 @@ Fixed
 [X] AWS Describe instance failure causes scan lost - add retry 
 [X] ScanRequest dates may fail unmarshalling if they don't contain 3 millisec digits
 [X] Nullpointer during blocking - think due to v8.6 EngineState change
+[X] Ping engine during provisioning won't exit if app stopped
 [ ] Disk encryption caused launch failure - what does AWS return?
 [ ] cxManagerURL is logged incorrectly
 [ ] Launching multiple scans on startup, exceeds limits
@@ -47,14 +48,14 @@ RANDY
 [X] Scaffold VmwareProvisioner (separate module)
 
 SERGIO
-[ ] Define and implement VmwareConfig
-[ ] Implement VmwareProvisioner
+[X] Define and implement VmwareConfig
+[X] Implement VmwareProvisioner
 
 MOVE SALES
 [ ] Check on IAM Role based AWS authentication
-[ ] Support static engines
+[X] Support static engines
 [ ] Support minimum running engines
-[ ] Restarting DynEngine with engine actively scanning
+[X] Restarting DynEngine with engine actively scanning
      - Check how expiration is handled for existing eng
      
 CxMS

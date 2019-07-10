@@ -22,18 +22,22 @@ import java.util.Map;
 
 import org.joda.time.DateTime;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Tag;
 import com.checkmarx.engine.domain.DynamicEngine;
 import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class AwsEnginesTest extends AwsSpringTest {
@@ -50,7 +54,7 @@ public class AwsEnginesTest extends AwsSpringTest {
 	public void setUp() throws Exception {
 		log.trace("setUp()");
 
-		//Assume.assumeTrue(super.runAwsIntegrationTests());
+		Assume.assumeTrue(super.runAwsIntegrationTests());
 
 		assertThat(awsEngines, is(notNullValue()));
 	}
@@ -78,6 +82,11 @@ public class AwsEnginesTest extends AwsSpringTest {
 	}
 
 	@Test
+	public void testStop() throws Exception {
+		awsEngines.stop("i-0f1d10be0c02ae113");
+	}
+
+	@Test
 	public void testFindEngines() {
 		log.trace("testFindEngines()");
 		
@@ -96,8 +105,29 @@ public class AwsEnginesTest extends AwsSpringTest {
 		
 		engines.forEach((engine) -> log.debug("{}", engine));
 	}
+	
+	@Test
+	public void testTagEngine() {
+        log.trace("testTagEngine()");
+        
+        final List<DynamicEngine> engines = awsEngines.listEngines();
+        final DynamicEngine engine = Iterables.getFirst(engines, null);
+        if (engine == null) {
+            Assert.fail("No engines currently provisioned.");
+        }
+        
+        final Tag tag = new Tag("test", "test");
+        Instance instance = awsEngines.tagEngine(engine, tag);
+        assertThat(Ec2.getTag(instance, "test"), is("test"));
+        
+        tag.setValue("");
+        instance = awsEngines.tagEngine(engine, tag);
+        assertThat(Ec2.getTag(instance, "test"), is(""));
+	}
 
 	@Test
+	@Ignore
+	// this test takes about 10 mins to run.  Comment out @Ignore to run
 	public void testLaunchAndStop() throws Exception {
 		log.trace("testLaunchAndStop()");
 		

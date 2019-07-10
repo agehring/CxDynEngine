@@ -20,12 +20,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import com.checkmarx.engine.domain.EngineSize;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 
 @Profile("aws")
 @Configuration
 @ConfigurationProperties(prefix="cx-aws-engine")
+@JsonIgnoreProperties("$$beanFactory")
 public class AwsEngineConfig {
 
 	private boolean assignPublicIP;
@@ -37,11 +39,13 @@ public class AwsEngineConfig {
 	private int launchTimeoutSec=60;
 	private int monitorPollingIntervalSecs = 10;
 	private String securityGroup;
+	private int stopWaitTimeSecs = 30;
 	private String subnetId;
 	private boolean terminateOnStop;
 	private boolean usePublicUrlForCx = false;
 	private boolean usePublicUrlForMonitor = false;
-	
+	private String ssmAutomationDocument = "AWS-StopEC2Instance";
+
 	private String scriptOnLaunch;
 	private String scriptOnTerminate;
 
@@ -55,7 +59,7 @@ public class AwsEngineConfig {
 	/**
 	 * Maps custom EC2 tags to values
 	 */
-	private final Map<String,String> engineTagMap = Maps.newHashMap();
+	private final Map<String,String> tagMap = Maps.newHashMap();
 
 	public boolean isAssignPublicIP() {
 		return assignPublicIP;
@@ -127,7 +131,7 @@ public class AwsEngineConfig {
 		this.securityGroup = securityGroup;
 	}
 
-	/**
+    /**
 	 * Timeout to wait for Running state after EC2 instance launch
 	 */
 	public int getLaunchTimeoutSec() {
@@ -138,6 +142,17 @@ public class AwsEngineConfig {
 		this.launchTimeoutSec = launchTimeoutSec;
 	}
 
+	/**
+	 * Time to wait for stopping engine before attempting to start  
+	 */
+    public int getStopWaitTimeSecs() {
+        return stopWaitTimeSecs;
+    }
+
+    public void setStopWaitTimeSecs(int stopWaitTimeSecs) {
+        this.stopWaitTimeSecs = stopWaitTimeSecs;
+    }
+
 	public String getSubnetId() {
 		return subnetId;
 	}
@@ -146,10 +161,12 @@ public class AwsEngineConfig {
 		this.subnetId = subnetId;
 	}
 
+    @Deprecated
 	public boolean isTerminateOnStop() {
 		return terminateOnStop;
 	}
 
+	@Deprecated
 	public void setTerminateOnStop(boolean terminateOnStop) {
 		this.terminateOnStop = terminateOnStop;
 	}
@@ -208,7 +225,7 @@ public class AwsEngineConfig {
 	 *  	value=tag value 
 	 */
 	public Map<String, String> getTagMap() {
-		return engineTagMap;
+		return tagMap;
 	}
 
 	public String printEngineSizeMap() {
@@ -220,9 +237,17 @@ public class AwsEngineConfig {
 
 	private String printEngineTagMap() {
 		final StringBuilder sb = new StringBuilder();
-		engineTagMap.forEach((name,value) ->
+		tagMap.forEach((name,value) ->
 			sb.append(String.format("%s->%s, ", name,value)) );
 		return sb.toString().replaceAll(", $", ""); 
+	}
+
+	public String getSsmAutomationDocument() {
+		return ssmAutomationDocument;
+	}
+
+	public void setSsmAutomationDocument(String ssmAutomationDocument) {
+		this.ssmAutomationDocument = ssmAutomationDocument;
 	}
 
 	public String toString() {
@@ -238,11 +263,13 @@ public class AwsEngineConfig {
 				.add("launchTimeoutSec", launchTimeoutSec)
 				.add("scriptOnLaunch", scriptOnLaunch)
 				.add("scriptOnTerminate", scriptOnTerminate)
+				.add("stopWaitTimeSecs", stopWaitTimeSecs)
 				.add("terminateOnStop", terminateOnStop)
 				.add("usePublicUrlForCx", usePublicUrlForCx)
 				.add("usePublicUrlForMonitor", usePublicUrlForMonitor)
 				.add("engineSizeMap", "[" + printEngineSizeMap() +"]")
 				.add("engineTagMap", "[" + printEngineTagMap() +"]")
+				.add("ssmAutomationDocumetn", ssmAutomationDocument)
 				.toString();
 	}
 

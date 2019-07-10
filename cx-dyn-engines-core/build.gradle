@@ -6,7 +6,9 @@ dependencies {
 
 jar {
     manifest {
-        attributes("Implementation-Title": "Checkmarx CxSAST Dynamic Engine SDK",
-                   "Implementation-Version": version)
+        attributes(
+            "Implementation-Title": "Checkmarx CxSAST Dynamic Engine SDK",
+            "Implementation-Version": version
+        )
     }
 }

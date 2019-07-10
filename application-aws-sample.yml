@@ -24,8 +24,10 @@ cx:
   queueingEngineName: DynamicEngine #Name given to the Blocked Engine in Cx UI
   restUrl: https://cx.ken-mcdonald.com
   timeoutSecs: 120 #HTTP client request timeout (connection and read)
+  terminateOnStop: false
   userName: xxx #Checkmarx user (must have access to register engines)
   password: xxx #Checkmarx password
+  notificationId: #ARN for notification
 
 cx-aws-engine:
   assignPublicIP: true
@@ -44,11 +46,11 @@ cx-aws-engine:
   scriptOnLaunch: scripts/launch.groovy
   scriptOnTerminate: scripts/terminate.groovy
   securityGroup: sg-04ed28298b8ec3106 #AWS Security Group to apply to launched Engines
+  stopWaitTimeSecs: 30    #time to wait for a stopping engine before attempting to start 
   subnetId: subnet-39b72265 #AWS Subnet ID to launch Engines into
   tagMap:
     client: abc
     component: dynamic-engine
-  terminateOnStop: true
   usePublicUrlForCx: false #Cx will register the Engine with Public or Private IP
   usePublicUrlForMonitor: true #DE will monitor if an Engine is up and running based on Public or Private IP
 

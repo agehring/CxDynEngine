@@ -25,10 +25,10 @@ import com.checkmarx.engine.domain.EngineSize;
 import com.google.common.collect.Lists;
 
 /**
- * {@code CxEngines} that does nothing.  
+ * {@code CxEngines} implementation that does nothing.  
  * Useful for unit testing and spring context building.
  *  
- * @author rjgey
+ * @author randy@checkmarx.com
  * @see CxEngines
  *
  */
@@ -62,5 +62,17 @@ public class NoopEngines implements CxEngines {
 		log.debug("stop() : {}, force={}", engine, forceTerminate);
 		// noop
 	}
+
+    @Override
+    public void onScanAssigned(DynamicEngine toEngine) {
+        log.debug("onScanAssigned() : {}", toEngine);
+        // noop
+    }
+
+    @Override
+    public void onScanRemoved(DynamicEngine fromEngine) {
+        log.debug("onScanRemoved() : {}", fromEngine);
+        // noop
+    }
 
 }

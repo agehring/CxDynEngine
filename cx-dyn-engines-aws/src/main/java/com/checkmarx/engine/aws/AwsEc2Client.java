@@ -18,19 +18,28 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.lang.Nullable;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+import com.amazonaws.services.ec2.model.CreateTagsRequest;
+import com.amazonaws.services.ec2.model.CreateTagsResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Filter;
@@ -42,13 +51,19 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;
-import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TagSpecification;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.AutomationExecution;
+import com.amazonaws.services.simplesystemsmanagement.model.GetAutomationExecutionRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetAutomationExecutionResult;
+import com.amazonaws.services.simplesystemsmanagement.model.StartAutomationExecutionRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.StartAutomationExecutionResult;
 import com.checkmarx.engine.aws.Ec2.InstanceState;
+import com.checkmarx.engine.utils.TaskManager;
 import com.checkmarx.engine.utils.TimeoutTask;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
@@ -68,16 +83,22 @@ public class AwsEc2Client implements AwsComputeClient {
 	private static final Logger log = LoggerFactory.getLogger(AwsEc2Client.class);
 	
 	private final AmazonEC2 client;
+	private final AWSSimpleSystemsManagement ssmClient;
+
 	private final AwsEngineConfig config;
+	private final TaskManager taskManager;
 	
-	public AwsEc2Client(AwsEngineConfig config) {
+	public AwsEc2Client(@NotNull AwsEngineConfig config, @NotNull TaskManager taskManager) {
 		this.client = AmazonEC2ClientBuilder.defaultClient();
+		this.ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
 		this.config = config;
+		this.taskManager = taskManager;
 
 		log.info("ctor(): {}", this);
 	}
 	
 	@Override
+	@NotNull
 	public AwsEngineConfig getConfig() {
 		return config;
 	}
@@ -87,7 +108,9 @@ public class AwsEc2Client implements AwsComputeClient {
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public Instance launch(String name, String instanceType, Map<String,String> tags) {
+	@NotNull
+	public Instance launch(@NotBlank String name, @NotBlank String instanceType, 
+	        @NotNull Map<String,String> tags) throws Exception {
 		log.trace("launch(): name={}; instanceType={}", name, instanceType);
 		
 		Instance instance = null;
@@ -108,22 +131,32 @@ public class AwsEc2Client implements AwsComputeClient {
 			
 			success = true;
 			return instance;
-			
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            // do not retry, so throw original exception
+		    handleLaunchException(e, instance, name);
+		    throw new InterruptedException(e.getMessage());
 		} catch (Throwable t) {
-			log.warn("Failed to launch EC2 instance; name={}; cause={}; message={}", name, t, t.getMessage());
-			if (instance != null) {
-				final String instanceId = instance.getInstanceId();
-				log.warn("Terminating failed instance launch; instanceId={}", instanceId);
-				safeTerminate(instanceId);
-			}
+		    // retry, so throw RuntimeException
+		    handleLaunchException(t, instance, name);
 			throw new RuntimeException("Failed to launch EC2 instance", t);
 		} finally {
 			log.info("action={}, success={}; elapsedTime={}s; {}; requestId={}", 
 					"launchInstance", success, timer.elapsed(TimeUnit.SECONDS), Ec2.print(instance), requestId);
 		}
 	}
+	
+	private void handleLaunchException(Throwable t, Instance instance, String name) {
+        log.warn("Failed to launch EC2 instance; name={}; cause={}; message={}", 
+                name, t, t.getMessage());
+        if (instance != null) {
+            final String instanceId = instance.getInstanceId();
+            log.warn("Terminating failed instance launch; instanceId={}", instanceId);
+            safeTerminate(instanceId);
+        }
+	}
 
-	private RunInstancesRequest createRunRequest(String name, String instanceType, Map<String, String> tags) {
+	@NotNull
+	private RunInstancesRequest createRunRequest(@NotBlank String name, @NotBlank String instanceType, @NotNull Map<String, String> tags) {
 		log.trace("createRunRequest(): name={}; instanceType={}", name, instanceType);
 
 		final TagSpecification tagSpec = createTagSpec(name, tags);
@@ -153,7 +186,8 @@ public class AwsEc2Client implements AwsComputeClient {
 		return runRequest;
 	}
 
-	private TagSpecification createTagSpec(String name, Map<String, String> tags) {
+	@NotNull
+	private TagSpecification createTagSpec(@NotBlank String name, @NotNull Map<String, String> tags) {
 		final TagSpecification tagSpec = new TagSpecification();
 		tagSpec.getTags().add(createTag("Name", name));
 		for (Entry<String,String> tag: tags.entrySet()) {
@@ -165,10 +199,11 @@ public class AwsEc2Client implements AwsComputeClient {
 	
 	@Override
 	@Retryable(
-			value = { RuntimeException.class },
+			value = { AmazonClientException.class },
 					maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 					backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public Instance start(String instanceId) {
+	@NotNull
+	public Instance start(@NotBlank String instanceId) throws Exception {
 		log.trace("start(): instanceId={}", instanceId);
 		
 		try {
@@ -188,41 +223,80 @@ public class AwsEc2Client implements AwsComputeClient {
 		} catch (AmazonClientException e) {
 			log.warn("Failed to start EC2 instance; instanceId={}; cause={}; message={}", 
 					instanceId, e, e.getMessage());
-			throw new RuntimeException("Failed to start EC2 instance", e);
-		}
+			throw e;
+		} catch (InterruptedException e) {
+            log.warn("Failed to start EC2 instance; instanceId={}; cause={}; message={}", 
+                    instanceId, e, e.getMessage());
+            throw e;
+        }
 	}
-	
+
+
+	/**
+	 * @Override
+	 *        @Retryable(
+	 *            value = { RuntimeException.class },
+	 * 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
+	 * 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
+	 * 	public void stop(@NotBlank String instanceId) {
+	 * 		log.trace("stop(): instanceId={}", instanceId);
+	 *
+	 * 		try {
+	 * 			final StopInstancesRequest request = new StopInstancesRequest();
+	 * 			request.withInstanceIds(instanceId);
+	 *
+	 * 			final StopInstancesResult result = client.stopInstances(request);
+	 * 			logResult(result, instanceId, "stopInstance", false);
+	 *        } catch (AmazonClientException e) {
+	 * 			log.warn("Failed to stop EC2 instance; instanceId={}; cause={}; message={}",
+	 * 					instanceId, e, e.getMessage());
+	 * 			throw new RuntimeException("Failed to stop EC2 instance", e);
+	 *        }
+	 *    }
+	 *
+	 *
+	 */
+
 	@Override
 	@Retryable(
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public void stop(String instanceId) {
+	public void stop(@NotBlank String instanceId) {
 		log.trace("stop(): instanceId={}", instanceId);
 		
 		try {
-			final StopInstancesRequest request = new StopInstancesRequest();
-			request.withInstanceIds(instanceId);
-			
-			final StopInstancesResult result = client.stopInstances(request);
-			final String requestId = result.getSdkResponseMetadata().getRequestId();
-			final int statusCode = result.getSdkHttpMetadata().getHttpStatusCode();
-		
-			log.info("action=stopInstance; instanceId={}; requestId={}; status={}", 
-						instanceId, requestId, statusCode);
+			StartAutomationExecutionRequest request = new StartAutomationExecutionRequest();
+			request.setDocumentName(config.getSsmAutomationDocument());
+			request.setParameters(Collections.singletonMap("InstanceId", Collections.singletonList(instanceId)));
+			StartAutomationExecutionResult result = ssmClient.startAutomationExecution(request);
+			String executionId = result.getAutomationExecutionId();
+
+			AutomationExecution execution = getAutomationExecution(executionId);
+			log.debug("action=Stopping EC2 instance via SSM; instanceId={}; status={}", 
+			        instanceId, execution.getAutomationExecutionStatus());
+			// TODO: monitor In Progress -> Success
+
+			log.debug("Execution id for SSM EC2 Instance shutdown: {}", executionId);
 		} catch (AmazonClientException e) {
 			log.warn("Failed to stop EC2 instance; instanceId={}; cause={}; message={}", 
 					instanceId, e, e.getMessage());
 			throw new RuntimeException("Failed to stop EC2 instance", e);
 		}
 	}
-	
+
+	private AutomationExecution getAutomationExecution(String executionId){
+		GetAutomationExecutionRequest automationExecutionRequest = new GetAutomationExecutionRequest().withAutomationExecutionId(executionId);
+		GetAutomationExecutionResult automationExecutionResult = ssmClient.getAutomationExecution(automationExecutionRequest);
+		return automationExecutionResult.getAutomationExecution();
+	}
+
 	@Override
 	@Retryable(
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public void terminate(String instanceId) {
+	public void terminate(@NotBlank String instanceId) {
 		log.trace("terminate(): instanceId={}", instanceId);
 		
 		try {
@@ -230,11 +304,7 @@ public class AwsEc2Client implements AwsComputeClient {
 			request.withInstanceIds(instanceId);
 			
 			final TerminateInstancesResult result = client.terminateInstances(request);
-			final String requestId = result.getSdkResponseMetadata().getRequestId();
-			final int statusCode = result.getSdkHttpMetadata().getHttpStatusCode();
-		
-			log.debug("action=terminateInstance; instanceId={}; requestId={}; status={}", 
-						instanceId, requestId, statusCode);
+			logResult(result, instanceId, "terminateInstance", false);
 		} catch (AmazonClientException e) {
 			log.warn("Failed to terminate EC2 instance; instanceId={}; cause={}; message={}", 
 					instanceId, e, e.getMessage());
@@ -242,7 +312,7 @@ public class AwsEc2Client implements AwsComputeClient {
 		}
 	}
 	
-	private void safeTerminate(String instanceId) {
+	private void safeTerminate(@NotBlank String instanceId) {
 		log.trace("safeTerminate(): instanceId={}", instanceId);
 		try {
 			terminate(instanceId);
@@ -258,8 +328,9 @@ public class AwsEc2Client implements AwsComputeClient {
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public List<Instance> find(Map<String, String> tags) {
-		log.trace("list(): tag={}", tags);
+	@NotNull
+	public List<Instance> find(@NotNull Map<String, String> tags) {
+		log.trace("find(): tag={}", tags);
 		
 		try {
 			final List<Instance> allInstances = Lists.newArrayList();
@@ -279,7 +350,7 @@ public class AwsEc2Client implements AwsComputeClient {
 			for (Reservation reservation : result.getReservations()) {
 				allInstances.addAll(reservation.getInstances());
 			}
-
+			logResult(result, "", "findInstances", true);
 			log.debug("action=findInstances; tags={}; found={}", tags, allInstances.size());
 			
 			return allInstances;
@@ -294,7 +365,8 @@ public class AwsEc2Client implements AwsComputeClient {
 			value = { RuntimeException.class },
 			maxAttempts = AwsConstants.RETRY_ATTEMPTS,
 			backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
-	public Instance describe(String instanceId) {
+	@NotNull
+	public Instance describe(@NotBlank String instanceId) {
 		log.trace("describe(): instanceId={}", instanceId);
 		
 		try {
@@ -302,14 +374,9 @@ public class AwsEc2Client implements AwsComputeClient {
 			request.withInstanceIds(instanceId);
 			
 			final DescribeInstancesResult result = client.describeInstances(request);
-			final Instance instance = validateDescribeResult(result);
-			if (instance == null) return null;
+			final Instance instance = getFirstInstance(result);
 			
-			final String requestId = result.getSdkResponseMetadata().getRequestId();
-			final int statusCode = result.getSdkHttpMetadata().getHttpStatusCode();
-			
-			log.debug("action=describeInstance; {}; requestId={}; status={}", 
-					Ec2.print(instance), requestId, statusCode);
+			logResult(result, instance.getInstanceId(), "describeInstance", true);
 			
 			return instance;
 		} catch (AmazonClientException e) {
@@ -328,28 +395,29 @@ public class AwsEc2Client implements AwsComputeClient {
 	 * @param instanceId
 	 * @param skipState state to avoid, can be null
 	 * @return instance or <null/> if not valid
+	 * @throws InterruptedException when interrupted while waiting for pending state
 	 * @throws RuntimeException if unable to determine status before timeout
 	 */
-	private Instance waitForPendingState(String instanceId, InstanceState skipState) {
+	@NotNull
+	private Instance waitForPendingState(@NotBlank String instanceId, InstanceState skipState) throws Exception {
 		log.trace("waitForPendingState() : instanceId={}; skipState={}", instanceId, skipState);
 		
 		long sleepMs = config.getMonitorPollingIntervalSecs() * 1000;
 		
 		final TimeoutTask<Instance> task = 
-				new TimeoutTask<>("waitForState", config.getLaunchTimeoutSec(), TimeUnit.SECONDS);
+				new TimeoutTask<>("waitForState-"+instanceId, config.getLaunchTimeoutSec(), 
+				        TimeUnit.SECONDS, taskManager);
 		try {
 			return task.execute(() -> {
 				TimeUnit.MILLISECONDS.sleep(sleepMs);
 				Instance instance = describe(instanceId);
-				if (instance == null) return null;
-				
 				InstanceState state = Ec2.getState(instance);
 				while (state.equals(InstanceState.PENDING) || state.equals(skipState)) {
 					log.trace("state={}, waiting to refresh; instanceId={}; sleep={}ms", 
 							state, instanceId, sleepMs); 
 					if (Thread.currentThread().isInterrupted()) {
-						log.info("waitForPendingState(): thread interrupted, exiting");
-						break;
+					    final String msg = "waitForPendingState() interrupted, exiting"; 
+						throw new InterruptedException(msg);
 					}
 					TimeUnit.MILLISECONDS.sleep(sleepMs);
 					instance = describe(instanceId);
@@ -357,59 +425,97 @@ public class AwsEc2Client implements AwsComputeClient {
 				}
 				return instance;
 			});
+        } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
+            log.warn("Failed to determine instance state due to interruption; instanceId={}; message={}", 
+                    instanceId, e.getMessage());
+            throw e;
 		} catch (TimeoutException e) {
 			log.warn("Failed to determine instance state due to timeout; instanceId={}; message={}", 
 					instanceId, e.getMessage());
 			throw new RuntimeException("Timeout waiting for instance state", e);
-		} catch (Throwable t) {
+		} catch (Exception e) {
 			log.warn("Failed to determine instance state; instanceId={}; cause={}; message={}", 
-					instanceId, t, t.getMessage());
-			throw new RuntimeException("Failed to determine instance state", t);
+					instanceId, e, e.getMessage());
+			throw e;
 		}
 	}
 	
 	@Override
-	public boolean isProvisioned(String instanceId) {
+	public boolean isProvisioned(@NotBlank String instanceId) throws Exception {
 		final Instance instance = waitForPendingState(instanceId, null);
 		return Ec2.isProvisioned(instance);
 	}
 
 	@Override
-	public boolean isRunning(String instanceId) {
+	public boolean isRunning(@NotBlank String instanceId) throws Exception {
 		final Instance instance = waitForPendingState(instanceId, null);
 		return Ec2.isRunning(instance);
 	}
 
+    @Override
+    @Retryable(
+            value = { RuntimeException.class },
+            maxAttempts = AwsConstants.RETRY_ATTEMPTS,
+            backoff = @Backoff(delay = AwsConstants.RETRY_DELAY))
+    @NotNull
+    public Instance updateTags(@NotNull Instance instance, @NotNull Tag... tags) {
+        final String instanceId = instance.getInstanceId();
+        log.trace("updateTags(): instance={}", instanceId);
+        
+        try {
+            final CreateTagsRequest request = new CreateTagsRequest()
+                    .withTags(tags)
+                    .withResources(instanceId);
+            final CreateTagsResult result = client.createTags(request);
+            logResult(result, instanceId, "createTags", false);
+            return describe(instanceId);
+        } catch (AmazonClientException e) {
+            log.warn("Failed to create tages on EC2 instance; instanceId={}; cause={}; message={}", 
+                    instanceId, e, e.getMessage());
+            throw new RuntimeException("Failed to create tags on EC2 instance", e);
+        }
+        
+    }
+
+    @NotNull
 	private Instance validateRunResult(RunInstancesResult result) {
-		if (result == null) return null;
-		
+		if (result == null) throw new RuntimeException("EC2 RunInstanceResult is null");
+	
 		final Reservation reservation = result.getReservation();
-		if (reservation == null) return null;
+		if (reservation == null) throw new RuntimeException("EC2 RunInstance reservation is null");
 		
 		final List<Instance> instances = reservation.getInstances();
-		if (instances == null || instances.size() == 0) return null;
+		if (instances == null || instances.isEmpty()) 
+		    throw new RuntimeException("RunInstance instance is empty or null");
 		
 		return instances.get(0);
 	}
-		
-	private Instance validateDescribeResult(DescribeInstancesResult result) {
-		if (result == null) return null;
-		
+	
+    @Nullable
+	private Instance getFirstInstance(DescribeInstancesResult result) {
 		final List<Reservation> reservations = result.getReservations();
-		if (reservations == null || reservations.size() == 0) return null;
-		
 		final Reservation reservation = reservations.get(0);
 		final List<Instance> instances = reservation.getInstances();
-		if (instances == null || instances.size() == 0) return null;
-		
 		return instances.get(0);
 	}
 		
-	private Tag createTag(String key, String value) {
-		Tag tag = new Tag();
-		tag.setKey(key);
-		tag.setValue(value);
-		return tag;
+    private void logResult(AmazonWebServiceResult<?> result, String instanceId, @NotBlank String action, boolean debug) {
+        if (result == null) return;
+
+        final String requestId = result.getSdkResponseMetadata().getRequestId();
+        final int statusCode = result.getSdkHttpMetadata().getHttpStatusCode();
+    
+        if (debug) {
+            log.debug("action={}; instanceId={}; requestId={}; status={}", 
+                    action, instanceId, requestId, statusCode);
+        } else {
+            log.info("action={}; instanceId={}; requestId={}; status={}", 
+                    action, instanceId, requestId, statusCode);
+        }
+    }
+    
+	private Tag createTag(@NotBlank String key, String value) {
+		return new Tag(key, value);
 	}
 
 	@Override

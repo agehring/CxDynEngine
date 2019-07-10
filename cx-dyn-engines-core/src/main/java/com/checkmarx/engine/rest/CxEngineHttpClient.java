@@ -40,7 +40,7 @@ import com.google.common.base.Strings;
 /**
  * {@code CxEngineClient} based on Spring RestTemplate and HttpClient.
  * 
- * @author rjgey
+ * @author randy@checkmarx.com
  *
  */
 @Component
@@ -50,10 +50,10 @@ public class CxEngineHttpClient extends BaseHttpClient implements CxEngineClient
 
 	private final RestTemplate engineClient;
 
-	public CxEngineHttpClient(RestTemplateBuilder restTemplateBuilder, CxConfig config) {
+	public CxEngineHttpClient(RestTemplateBuilder builder, CxConfig config) {
 		super(config);
 		
-		this.engineClient = getRestBuilder(restTemplateBuilder).build();
+		this.engineClient = super.getRestBuilder(builder).build();
 
 		log.info("ctor(): {}", this);
 	}
@@ -65,16 +65,16 @@ public class CxEngineHttpClient extends BaseHttpClient implements CxEngineClient
 		final String url = buildEngineServiceUrl(host);
 		
 		try {
-			final String payload = execute("pingEngine", () -> {
+			final String payload = execute("pingEngine; host=" + host , () -> {
 				final ResponseEntity<String> response = engineClient.getForEntity(url, String.class);
 				return response.getBody();
 			});
-			log.debug("pingEngine: response={}", payload.substring(0, 120));
+			log.debug("pingEngine: host={}; response={}", host, payload.substring(0, 120));
 			
 			return true;
 			
 		} catch (RestClientException ex) {
-			log.debug("pingEngine failed : message={}", ex.getMessage());
+			log.debug("pingEngine failed: host={}; message={}", host, ex.getMessage());
 			return false;
 		}
 	}

@@ -1,23 +1,20 @@
 description = 'Checkmarx CxSAST Dynamic Engine AWS Library'
 
 dependencies {
-    compile project(':cx-dyn-engines-core')
-    compile(
-        'com.amazonaws:aws-java-sdk-ec2'
+    implementation project(':cx-dyn-engines-core')
+    implementation (
+        'com.amazonaws:aws-java-sdk-ec2',
+        'com.amazonaws:aws-java-sdk-sns',
+        'com.amazonaws:aws-java-sdk-ssm'
     )
 }
 
 jar {
-    baseName = 'cx-dyn-engines-aws'
-
     manifest {
-        attributes("Implementation-Title": "Checkmarx Dynamic Engines AWS Library",
-                   "Implementation-Version": version)
+        attributes(
+            "Implementation-Title": "Checkmarx Dynamic Engines AWS Library",
+            "Implementation-Version": version
+        )
     }
 }
 
-// Prevents submodule dependencies from being included in the common jar itself.
-// Without this, each subproject that included common would include each shared dependency twice.
-bootRepackage {
-    enabled = false
-}
