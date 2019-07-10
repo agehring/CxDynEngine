@@ -199,6 +199,14 @@ public class EngineManager implements Runnable {
             if (provisionedEngines.stream().noneMatch(dynEngine -> namesMatch(cxEngine, dynEngine))) {
                 staleEngines.add(cxEngine);
             }
+            else{
+            	//Go through the provisionedEngines and map the associated engine Id from the registered engine from Cx
+				for(DynamicEngine e: provisionedEngines){
+					if(namesMatch(cxEngine, e)){
+						e.setEngineId(cxEngine.getId().toString());
+					}
+				}
+			}
         });
         
         staleEngines.forEach(engine -> unRegisterStaleEngine(engine));
@@ -293,6 +301,8 @@ public class EngineManager implements Runnable {
 				.filter(engine -> engine.getHost() != null) //a host object reference here is the only indication of a running server
 				.collect(Collectors.toList());
 
+		// make sure idle engines are not registered with CxManager
+		unRegisterIdleEngines(idleEngines, registeredEngines);
 		// add idle engines to the pool
 		idleEngines.forEach(engine -> addEngineToPool(engine));
 
@@ -307,10 +317,7 @@ public class EngineManager implements Runnable {
                 engineProvisioner.onScanRemoved(engine);  //remove reference to the invalid scan id
             }
         });
-        
-        // make sure idle engines are not registered with CxManager
-        unRegisterIdleEngines(idleEngines, registeredEngines);
-       
+
         return activeEngines;
     }
 

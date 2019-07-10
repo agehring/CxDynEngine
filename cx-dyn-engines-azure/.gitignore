@@ -1,13 +1,3 @@
-# parent module specific ignores
-*.zip
-*.pptx
-archive/
-Errors/
-
-# ignore log files
-**/*.gz
-
-# common ignores
 .gradle
 /build/
 /bin/
@@ -26,7 +16,7 @@ Errors/
 *.iws
 *.iml
 *.ipr
-*/gradle/*
+
 ### NetBeans ###
 nbproject/private/
 build/
@@ -34,6 +24,3 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
-**/*.class
-**/gradlew*
-**/out/*

@@ -20,6 +20,7 @@ subprojects {
 
     def awsProfile='aws'
     def vmwareProfile='vmware'
+    def azureProfile='azure'
     def activeProfile;
 
     if (project.hasProperty('aws')) {
@@ -31,6 +32,11 @@ subprojects {
         // Used for vmware engine hosting
         activeProfile = vmwareProfile
         apply from: rootProject.file('gradle/profile-vmware.gradle');
+
+    } else if (project.hasProperty('azure')) {
+        // Used for azure engine hosting
+        activeProfile = azureProfile
+        apply from: rootProject.file('gradle/profile-azure.gradle');
 
     } else {
         // Default to aws when no profile property is specified
