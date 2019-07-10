@@ -1,3 +1,7 @@
+v1.1
+    - Leverage AWS SSM for shutdown behavior
+    - Introduce ability to gracefully handle restart of DE during mid-scan
+    - Adding Azure Implementation option
 USAGE:
     java -Djasypt.encryptor.password=<key> -jar cx-dyn-engines-X.X.X-SNAPSHOT.jar
 v1.0.1
