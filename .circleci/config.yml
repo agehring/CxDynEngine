@@ -13,11 +13,12 @@ jobs:
           key: v1-gradle-cache-{{ checksum "build.gradle" }}
       - run: chmod u+x gradlew
       - run: mkdir ./release
-      - run: VERSION=$(cat ./version.txt)
-      - run: ./gradlew clean build -Pazure -x test
-      - run: cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AZURE-${VERSION}-SNAPSHOT.jar
-      - run: ./gradlew clean build -Paws -x test
-      - run: cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AWS-${VERSION}-SNAPSHOT.jar
+      - run: |
+          VERSION=$(cat ./version.txt)
+          ./gradlew clean build -Pazure -x test
+          cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AZURE-${VERSION}-SNAPSHOT.jar
+          ./gradlew clean build -Paws -x test
+          cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AWS-${VERSION}-SNAPSHOT.jar
       - save_cache:
           paths:
             - ~/.gradle/wrapper
