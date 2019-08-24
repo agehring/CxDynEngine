@@ -14,9 +14,9 @@ jobs:
       - run: chmod u+x gradlew
       - run: mkdir ./release
       - run: VERSION=$(cat ./version.txt)
-      - run: ./gradlew clean build -Pazure
+      - run: ./gradlew clean build -Pazure -x test
       - run: cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AZURE-${VERSION}-SNAPSHOT.jar
-      - run: ./gradlew clean build -Paws
+      - run: ./gradlew clean build -Paws -x test
       - run: cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AWS-${VERSION}-SNAPSHOT.jar
       - save_cache:
           paths:
@@ -75,15 +75,19 @@ workflows:
   build_deploy:
     jobs:
       - build
-#      - docker-push:
-#          filters:
-#            branches:
-#              only: develop
-#          requires:
-#            - build
-#      - publish-github-release:
-#          filters:
-#            branches:
-#              only: develop
-#          requires:
-#            - build
+      - docker-push:
+          filters:
+            branches:
+              only:
+                - develop
+                - master
+          requires:
+            - build
+      - publish-github-release:
+          filters:
+            branches:
+              only:
+                - develop
+                - master
+          requires:
+            - build
