@@ -50,8 +50,8 @@ jobs:
           name: Publish application to docker hub
           command: |
             VERSION=$(cat ./version.txt)
-            mkdir -p ./build/libs
-            cp ./release/* ./build/libs/
+            mkdir -p ./cx-dyn-engines-app/build/libs
+            cp ./release/* ./cx-dyn-engines-app/build/libs/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} docker.io
             docker build -f Dockerfile-aws -t ${DOCKER_REPO}:aws-${VERSION} .
             docker build -f Dockerfile-azure -t ${DOCKER_REPO}:azure-${VERSION} .
