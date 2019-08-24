@@ -80,7 +80,6 @@ workflows:
           filters:
             branches:
               only:
-                - develop
                 - master
           requires:
             - build
@@ -88,7 +87,6 @@ workflows:
           filters:
             branches:
               only:
-                - develop
                 - master
           requires:
             - build
