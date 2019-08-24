@@ -51,7 +51,7 @@ jobs:
           command: |
             VERSION=$(cat ./version.txt)
             mkdir -p ./build/libs
-            cp ./release/* ./build/libs
+            cp ./release/* ./build/libs/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} docker.io
             docker build -f Dockerfile-aws -t ${DOCKER_REPO}:aws-${VERSION} .
             docker build -f Dockerfile-azure -t ${DOCKER_REPO}:azure-${VERSION} .
@@ -67,7 +67,7 @@ jobs:
           name: "Publish Release on GitHub"
           command: |
             go get github.com/tcnksm/ghr
-            VERSION=$(cat ./build/libs/version.txt)
+            VERSION=$(cat ./version.txt)
             rm ./version.txt
             ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./release/
 
