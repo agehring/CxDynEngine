@@ -176,10 +176,10 @@ public class EngineManager implements Runnable {
     public void initialize() {
         log.debug("initialize()");
         
-        log.info("Logging into CxManager; url={}, user={}", config.getRestUrl(), config.getUserName()); 
-        if (!cxClient.login()) {
-            throw new RuntimeException("Unable to login to CxManager, shutting down...");
-        }
+//        log.info("Logging into CxManager; url={}, user={}", config.getRestUrl(), config.getUserName());
+//        if (!cxClient.login()) {
+//            throw new RuntimeException("Unable to login to CxManager, shutting down...");
+//        }
 
         final List<EngineServer> registeredEngines = findRegisteredDynEngines();
         final List<ScanRequest> activeScans = findActiveScans();
