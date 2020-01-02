@@ -2,7 +2,8 @@ server:
   port: 8585 #Port for webserver to run (/health endpoint can be used to monitor service is up)
 
 logging:
-  file: cx-engines.log
+  file:
+    name: cx-engines.log
   level:
     com:
       checkmarx:
