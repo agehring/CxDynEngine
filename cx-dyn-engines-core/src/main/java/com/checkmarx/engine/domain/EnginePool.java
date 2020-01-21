@@ -326,8 +326,8 @@ public class EnginePool {
                                 size--;
                             }
                         } else {
-                            log.debug("Leaving min engines idle: engine={}; minEngines={}; size={}",
-                                    engine.getEngineId(), minEngines, size);
+                            log.debug("Leaving min engines idle: engineSize={}; engine={}; minEngines={}; size={}",
+                                    engineSize, engine.getEngineId(), minEngines, size);
                         }
                         
 					}
