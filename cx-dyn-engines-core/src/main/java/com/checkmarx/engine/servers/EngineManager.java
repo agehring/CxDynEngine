@@ -138,10 +138,9 @@ public class EngineManager implements Runnable {
 		
 		try {
 		    taskManager.addExecutor("EngineManager", managerExecutor);
-            taskManager.addExecutor("ScanQueuedExecutor", managerExecutor);
-            taskManager.addExecutor("ScanFinishedExecutor", managerExecutor);
-            taskManager.addExecutor("EngineExpiredExecutor", managerExecutor);
-            taskManager.addExecutor("IdleEngineMonitor", managerExecutor);
+            taskManager.addExecutor("ScanQueuedExecutor", scanQueuedExecutor);
+            taskManager.addExecutor("ScanFinishedExecutor", scanFinishedExecutor);
+            taskManager.addExecutor("EngineExpiringExecutor", engineExpiringExecutor);
 
             final IdleEngineMonitor engineMonitor = 
                     pool.createIdleEngineMonitor(this.expiredEnginesQueue, config.getExpireEngineBufferMins());
