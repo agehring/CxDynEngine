@@ -316,14 +316,20 @@ public class EnginePool {
 				
 				// loop thru IDLE engines looking for expiration
 				idleEngines.forEach((engineSize, engines) -> {
-					int minEngines = poolMins.get(engineSize);
+					final int minEngines = poolMins.get(engineSize);
 					log.debug("Idle engines: size={}; count={0}; minimum={}", engineSize, engines.size(), minEngines);
-					if (engines.size() > minEngines) {
-						engines.forEach(engine -> {
-						    if (checkExpiredEngine(expiredCount, engine)) {
-						        expiringEngines.add(engine);
-						    }
-						});
+					int size = engines.size();
+					for(DynamicEngine engine: engines) {
+                        if (size > minEngines) {
+                            if (checkExpiredEngine(expiredCount, engine)) {
+                                expiringEngines.add(engine);
+                                size--;
+                            }
+                        } else {
+                            log.debug("Leaving min engines idle: engine={}; minEngines={}; size={}",
+                                    engine.getEngineId(), minEngines, size);
+                        }
+                        
 					}
 					log.debug("Expiring engines: size={}; count={}", engineSize, expiredCount.get());
 				});
