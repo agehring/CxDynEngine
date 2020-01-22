@@ -67,6 +67,7 @@ public class CoreApplicationConfig {
 	public EnginePool enginePool(
 			EnginePoolConfig poolConfig) {
 	    poolConfig.validate();
+	    log.info("EnginePoolConfig is valid; {}", poolConfig); 
 		final DefaultEnginePoolBuilder builder = new DefaultEnginePoolBuilder(poolConfig); 
 		final List<EnginePoolEntry> pool = poolConfig.getPool();
 		pool.forEach((entry) -> {

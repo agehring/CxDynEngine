@@ -77,7 +77,9 @@ public class EnginePoolConfig {
 	}
 	
 	public void validate() {
+	    final List<EngineSize> sizeList = Lists.newArrayList();
 	    pool.forEach((poolEntry) -> {
+	        sizeList.add(poolEntry.getScanSize());
 	        if (poolEntry.getMinimum() > poolEntry.getCount()) {
 	            throw new IllegalArgumentException(
 	                    "Invalid engine pool config: Min engine count must be less than total engine count");
@@ -89,6 +91,11 @@ public class EnginePoolConfig {
                         "Invalid engine pool config: Scan size min LOC must be less than max LOC");
 	        }
 	    });
+	    
+	    if (EngineSize.isOverlap(sizeList)) {
+            throw new IllegalArgumentException(
+                    "Invalid engine pool config: Scan sizes overlap");
+	    }
 	}
 
 	private String printEnginePool() {

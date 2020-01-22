@@ -62,10 +62,12 @@ public class EnginePoolTests {
 			.addEntry(new EnginePoolEntry(MEDIUM, 3, 1))
 			.addEntry(new EnginePoolEntry(LARGE, 3, 0))
 			.build();
+		
+		config.validate();
 
 		log.info("{}", pool);
 	}
-
+	
 	@Test
 	public void testInit() {
 		log.trace("testInit()");
