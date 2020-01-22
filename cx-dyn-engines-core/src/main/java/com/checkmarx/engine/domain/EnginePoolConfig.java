@@ -75,6 +75,21 @@ public class EnginePoolConfig {
 	public List<EnginePoolEntry> getPool() {
 		return pool;
 	}
+	
+	public void validate() {
+	    pool.forEach((poolEntry) -> {
+	        if (poolEntry.getMinimum() > poolEntry.getCount()) {
+	            throw new IllegalArgumentException(
+	                    "Invalid engine pool config: Min engine count must be less than total engine count");
+	        }
+	        //check loc range
+	        final EngineSize scanSize = poolEntry.getScanSize();
+	        if (scanSize.getMinLOC() > scanSize.getMaxLOC()) {
+                throw new IllegalArgumentException(
+                        "Invalid engine pool config: Scan size min LOC must be less than max LOC");
+	        }
+	    });
+	}
 
 	private String printEnginePool() {
 		final StringBuilder sb = new StringBuilder();

@@ -66,6 +66,7 @@ public class CoreApplicationConfig {
 	@Bean
 	public EnginePool enginePool(
 			EnginePoolConfig poolConfig) {
+	    poolConfig.validate();
 		final DefaultEnginePoolBuilder builder = new DefaultEnginePoolBuilder(poolConfig); 
 		final List<EnginePoolEntry> pool = poolConfig.getPool();
 		pool.forEach((entry) -> {
