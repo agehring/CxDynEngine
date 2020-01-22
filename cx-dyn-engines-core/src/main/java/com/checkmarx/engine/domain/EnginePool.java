@@ -250,11 +250,11 @@ public class EnginePool {
     public List<DynamicEngine> allocateMinIdleEngines() {
         log.trace("allocateMinIdleEngines()");
         
-        List<DynamicEngine> engines = Lists.newArrayList();
+        final List<DynamicEngine> engines = Lists.newArrayList();
         poolMins.forEach((size, minCount) -> {
-            final int idleCount = idleEngines.get(size).size();
+            final int count = idleEngines.get(size).size() + activeEngines.get(size).size();
             final EngineSize scanSize = scanSizes.get(size);
-            for (int i = idleCount; i < minCount; i++) {
+            for (int i = count; i < minCount; i++) {
                 final DynamicEngine engine = allocateEngine(scanSize, State.UNPROVISIONED, State.IDLE);
                 if (engine == null) continue;
                 engines.add(engine);

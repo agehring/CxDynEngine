@@ -138,17 +138,21 @@ public class EnginePoolTests {
         DynamicEngine engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, State.IDLE);
         assertThat(engine, is(notNullValue()));
 
-        // should allocate 2 remaining min engines
+        engine = pool.allocateEngine(MEDIUM, State.UNPROVISIONED, State.SCANNING);
+        assertThat(engine, is(notNullValue()));
+
+        // should allocate 1 remaining min SMALL engine
         final List<DynamicEngine> engines = pool.allocateMinIdleEngines();
-        assertEquals(2, engines.size());
+        assertEquals(1, engines.size());
+        assertEquals(SMALL.getName(), engines.get(0).getSize());
 
         // should have one remaining SMALL IDLE engine
         engine = pool.allocateEngine(SMALL, State.IDLE, State.SCANNING);
         assertThat(engine, is(notNullValue()));
 
-        // should have one MEDIUM IDLE engine
+        // should NOT have a MEDIUM IDLE engine
         engine = pool.allocateEngine(MEDIUM, State.IDLE, State.SCANNING);
-        assertThat(engine, is(notNullValue()));
+        assertThat(engine, is(nullValue()));
 
         // should have no LARGE IDLE engines
         engine = pool.allocateEngine(LARGE, State.IDLE, State.SCANNING);
