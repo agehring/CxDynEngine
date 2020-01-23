@@ -68,13 +68,13 @@ cx-engine:
       minimum: 0
       scanSize:
         name: M
-        minLOC: 250000
+        minLOC: 250001
         maxLOC: 1000000
     - count: 1
       minimum: 0
       scanSize:
         name: L
-        minLOC: 1000000
+        minLOC: 1000001
         maxLOC: 2500000
     - count: 1
       minimum: 0
