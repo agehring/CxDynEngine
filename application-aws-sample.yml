@@ -58,24 +58,24 @@ cx-engine:
   engineExpireIntervalSecs: 3600 #Blocks of time an instance is paid by - this is used for expiring/termination of instances
   enginePrefix: cx-engine #Prefix given to naming the instance within the cloud provider
   pool:
-    - count: 3 #Maximum number of instances that will be launched for this pool mapping
-      minimum: 0 #Leave as zero to ensure engines are cleaned up, otherwise engines will stay at a minimum count once one is launched
-      scanSize:
+    - count: 3 # Maximum number of instances that will be launched for this pool mapping
+      minimum: 1 # Minimum number of instances to leave running at all times.  These will be launched on startup, if not already running.
+      scanSize: # Name and LOC range for the above pool
+        name: S # Name of the engine pool
+        minLOC: 0
         maxLOC: 250000
-        minLOC: 100000
-        name: S #Name to map to the cx-aws-engine.engineSizeMap
     - count: 3
       minimum: 0
       scanSize:
-        maxLOC: 1000000
-        minLOC: 250000
         name: M
+        minLOC: 250000
+        maxLOC: 1000000
     - count: 1
       minimum: 0
       scanSize:
-        maxLOC: 2500000
-        minLOC: 1000000
         name: L
+        minLOC: 1000000
+        maxLOC: 2500000
     - count: 1
       minimum: 0
       scanSize:
