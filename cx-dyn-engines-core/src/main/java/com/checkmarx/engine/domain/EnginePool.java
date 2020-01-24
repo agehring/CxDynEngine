@@ -207,6 +207,10 @@ public class EnginePool {
 		engine.setState(toState);
 	}
 	
+    public EngineSize getEngineSize(String size) {
+        return scanSizes.get(size);
+    }
+
 	public EngineSize calcEngineSize(long loc) {
 		log.trace("calcEngineSize() : loc={}", loc);
 		
@@ -216,8 +220,9 @@ public class EnginePool {
 		return null;
 	}
 	
-	public DynamicEngine allocateEngine(EngineSize scanSize, State fromState) {
-		log.trace("allocateEngine() : size={}; state={}", scanSize.getName(), fromState);
+	public DynamicEngine allocateEngine(EngineSize scanSize, State fromState, State toState) {
+		log.trace("allocateEngine() : size={}; fromState={}; toState={}", 
+		        scanSize.getName(), fromState, toState);
 		
 		final String size = scanSize.getName();
 		final Map<String, Set<DynamicEngine>> engineMap = engineMaps.get(fromState);
@@ -228,8 +233,8 @@ public class EnginePool {
 			if (engineList == null || engineList.size() == 0) return null;
 			
 			final DynamicEngine engine = Iterables.getFirst(engineList, null);
-			changeState(engine, State.SCANNING);
-			log.debug("Engine allocated: pool={}", this);
+			changeState(engine, toState);
+			log.debug("Engine allocated: fromState={}; toState={}; pool={}", fromState, toState, this);
 			return engine;
 		}
 	}
@@ -242,6 +247,22 @@ public class EnginePool {
         }
 	}
 	
+    public List<DynamicEngine> allocateMinIdleEngines() {
+        log.trace("allocateMinIdleEngines()");
+        
+        final List<DynamicEngine> engines = Lists.newArrayList();
+        poolMins.forEach((size, minCount) -> {
+            final int count = idleEngines.get(size).size() + activeEngines.get(size).size();
+            final EngineSize scanSize = scanSizes.get(size);
+            for (int i = count; i < minCount; i++) {
+                final DynamicEngine engine = allocateEngine(scanSize, State.UNPROVISIONED, State.IDLE);
+                if (engine == null) continue;
+                engines.add(engine);
+            }
+        });
+        return engines;
+    }
+
 	public void deallocateEngine(DynamicEngine engine) {
 		log.trace("deallocateEngine() : {}", engine);
 		synchronized(this) {
@@ -284,8 +305,11 @@ public class EnginePool {
 		allSizedEngines.forEach((size,engines)->
 				engines.forEach(engine->sb.append(String.format("%s; ", engine))));
 		final StringBuilder sbSizes = new StringBuilder();
-		engineSizes.forEach((size,count)->
-				sbSizes.append(String.format("%s:%d, ", size.getName(), count.get())));
+		engineSizes.forEach((scanSize,count)-> {
+		        String size = scanSize.getName();
+		        int min = poolMins.get(size);
+				sbSizes.append(String.format("%s:%d(%d), ", size, count.get(), min));
+			});
 		return MoreObjects.toStringHelper(this)
 				.add("engineSizes", "[" + sbSizes.toString().replaceAll(", $", "") + "]")
 				.add("engines", "[" + sb.toString().replaceAll("; $", "") + "]")
@@ -316,14 +340,20 @@ public class EnginePool {
 				
 				// loop thru IDLE engines looking for expiration
 				idleEngines.forEach((engineSize, engines) -> {
-					int minEngines = poolMins.get(engineSize);
+					final int minEngines = poolMins.get(engineSize);
 					log.debug("Idle engines: size={}; count={0}; minimum={}", engineSize, engines.size(), minEngines);
-					if (engines.size() > minEngines) {
-						engines.forEach(engine -> {
-						    if (checkExpiredEngine(expiredCount, engine)) {
-						        expiringEngines.add(engine);
-						    }
-						});
+					int size = engines.size();
+					for(DynamicEngine engine: engines) {
+                        if (size > minEngines) {
+                            if (checkExpiredEngine(expiredCount, engine)) {
+                                expiringEngines.add(engine);
+                                size--;
+                            }
+                        } else {
+                            log.debug("Leaving min engines idle: engineSize={}; engine={}; minEngines={}; size={}",
+                                    engineSize, engine.getEngineId(), minEngines, size);
+                        }
+                        
 					}
 					log.debug("Expiring engines: size={}; count={}", engineSize, expiredCount.get());
 				});
@@ -376,7 +406,12 @@ public class EnginePool {
 			this.count = count;
 		}
 
-		public EngineSize getScanSize() {
+		public EnginePoolEntry(EngineSize scanSize, int count, int minimum) {
+            this(scanSize, count);
+            this.minimum = minimum;
+        }
+
+        public EngineSize getScanSize() {
 			return scanSize;
 		}
 

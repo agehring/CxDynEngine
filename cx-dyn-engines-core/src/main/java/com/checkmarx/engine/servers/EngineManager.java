@@ -138,10 +138,10 @@ public class EngineManager implements Runnable {
 		
 		try {
 		    taskManager.addExecutor("EngineManager", managerExecutor);
-            taskManager.addExecutor("ScanQueuedExecutor", managerExecutor);
-            taskManager.addExecutor("ScanFinishedExecutor", managerExecutor);
-            taskManager.addExecutor("EngineExpiredExecutor", managerExecutor);
-            taskManager.addExecutor("IdleEngineMonitor", managerExecutor);
+            taskManager.addExecutor("ScanQueuedExecutor", scanQueuedExecutor);
+            taskManager.addExecutor("ScanFinishedExecutor", scanFinishedExecutor);
+            taskManager.addExecutor("EngineExpiringExecutor", engineExpiringExecutor);
+            taskManager.addExecutor("IdleEngineExecutor", idleEngineExecutor);
 
             final IdleEngineMonitor engineMonitor = 
                     pool.createIdleEngineMonitor(this.expiredEnginesQueue, config.getExpireEngineBufferMins());
@@ -185,6 +185,8 @@ public class EngineManager implements Runnable {
         final List<ScanRequest> activeScans = findActiveScans();
         final List<DynamicEngine> activeEngines = checkPreExistingEngines(activeScans, registeredEngines);
         trackPreExistingScans(activeEngines, activeScans);
+        spinMinIdleEngines();
+        
         //unregisterStaleEngines(activeEngines);
         registerQueuingEngine();
         log.info("initialize complete: {}", pool);
@@ -319,6 +321,26 @@ public class EngineManager implements Runnable {
         });
 
         return activeEngines;
+    }
+
+    private void spinMinIdleEngines() {
+        log.debug("spinMinIdleEngines()");
+        
+        List<DynamicEngine> idleEngines = pool.allocateMinIdleEngines();
+        log.info("Launching minimum idle engines; count={}", idleEngines.size());
+        idleEngines.forEach((engine) -> {
+            launchIdleEngine(engine);
+        });
+    }
+    
+    private void launchIdleEngine(DynamicEngine engine) {
+        try {
+            final EngineSize size = pool.getEngineSize(engine.getSize());
+            engineProvisioner.launch(engine, size, false);
+        } catch (InterruptedException e) {
+            // if interrupted, continue
+            log.warn("Spinning idle engine interrupted, continuing...");
+        }
     }
 
     private boolean addEngineToPool(DynamicEngine engine) {
@@ -478,7 +500,7 @@ public class EngineManager implements Runnable {
 			log.trace("allocateIdleEngine(): size={}; {}", size, scan);
 
 			final State state = State.IDLE;
-			final DynamicEngine engine = pool.allocateEngine(size, state);
+			final DynamicEngine engine = pool.allocateEngine(size, state, State.SCANNING);
 			
 			if (engine == null) return false;
 			
@@ -490,7 +512,7 @@ public class EngineManager implements Runnable {
 			log.trace("allocateNewEngine(): size={}; {}", scan, size);
 
 			final State state = DynamicEngine.State.UNPROVISIONED;
-			final DynamicEngine engine = pool.allocateEngine(size, state);
+			final DynamicEngine engine = pool.allocateEngine(size, state, State.SCANNING);
 			
 			if (engine == null) return false;
 
