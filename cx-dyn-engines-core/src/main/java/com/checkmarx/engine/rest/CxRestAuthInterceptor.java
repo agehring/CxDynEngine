@@ -15,7 +15,6 @@ package com.checkmarx.engine.rest;
 
 import com.checkmarx.engine.CxConfig;
 import com.checkmarx.engine.rest.model.CxAuthResponse;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.conn.ssl.TrustStrategy;
