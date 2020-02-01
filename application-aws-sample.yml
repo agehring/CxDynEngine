@@ -44,6 +44,7 @@ cx-aws-engine:
   launchTimeoutSec: 60 #Amount of time to wait for an instance to move out of PENDING state in AWS
   monitorPollingIntervalSecs: 10 #Number of seconds before checking both Instance state and checking if the the HTTP endpoint is available on the Engine
   scriptOnLaunch: scripts/launch.groovy
+  scriptOnStop: scripts/stop.groovy
   scriptOnTerminate: scripts/terminate.groovy
   securityGroup: sg-04ed28298b8ec3106 #AWS Security Group to apply to launched Engines
   stopWaitTimeSecs: 30    #time to wait for a stopping engine before attempting to start 

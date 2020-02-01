@@ -328,11 +328,14 @@ public class AzureEngines implements CxEngines {
 				action = "TerminatedEngine";
 				azureClient.terminate(instanceId);
 				provisionedEngines.remove(name);
+                engine.onTerminate();
 				runScript(azureConfig.getScriptOnTerminate(), engine);
 			} else {
 				azureClient.stop(instanceId);
 				instance = azureClient.describe(instanceId);
 				provisionedEngines.put(name, instance);
+                engine.onStop();
+                runScript(awsConfig.getScriptOnStop(), engine);
 			}
 			success = true;
 			

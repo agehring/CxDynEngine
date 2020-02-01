@@ -158,6 +158,10 @@ public class VmwareEngines implements CxEngines {
 		log.info("stop() : {}; forceTerminate={}", engine, forceTerminate);
         try {
             client.stop(engine.getName(), forceTerminate);
+            if (forceTerminate)
+                engine.onTerminate();
+            else
+                engine.onStop();
         }catch (RemoteException re){
             log.error("Remove exception {}",re.getMessage());
         }
