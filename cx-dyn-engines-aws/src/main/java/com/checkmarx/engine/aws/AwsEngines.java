@@ -340,12 +340,15 @@ public class AwsEngines implements CxEngines {
 				action = "TerminatedEngine";
 				ec2Client.terminate(instanceId);
 				provisionedEngines.remove(name);
+                engine.onTerminate();
 				runScript(awsConfig.getScriptOnTerminate(), engine);
 			} else {
 				ec2Client.stop(instanceId);
 				instance = ec2Client.describe(instanceId);
 				// update the map with updated instance
 				provisionedEngines.put(name, instance);
+                engine.onStop();
+                runScript(awsConfig.getScriptOnStop(), engine);
 			}
 			success = true;
 			
