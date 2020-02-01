@@ -17,7 +17,7 @@ cx:
 cx-aws-engine:
   assignPublicIP: true
   cxEngineTimeoutSec: 600         #how many seconds to wait for instance to launch before considered a failure
-  cxVersion: 8.8.0-HF1
+  cxVersion: 8.9.0
   engineSizeMap:
     S: t3.medium
     M: t3.large

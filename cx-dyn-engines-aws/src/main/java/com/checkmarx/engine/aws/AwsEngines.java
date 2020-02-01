@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import javax.validation.constraints.NotNull;
 
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -62,6 +64,9 @@ public class AwsEngines implements CxEngines {
 
 	private static final Logger log = LoggerFactory.getLogger(AwsEngines.class);
 	
+    static final DateTimeFormatter ISO_PARSER = ISODateTimeFormat.dateTimeParser();
+    static final DateTimeFormatter ISO_FORMATTER = ISODateTimeFormat.dateTimeNoMillis();
+
     private final CxConfig cxConfig;
 	private final AwsEngineConfig awsConfig;
 	private final EnginePoolConfig poolConfig;
@@ -118,6 +123,8 @@ public class AwsEngines implements CxEngines {
 		tags.put(CX_SIZE_TAG, size);
 		// set scanID to empty initially
 		tags.put(CX_SCAN_ID_TAG, "");
+		// set launch time
+		tags.put(CX_LAUNCH_TIME_TAG, ISO_FORMATTER.print(DateTime.now()));
 		// add custom tags from configuration
 		awsConfig.getTagMap().forEach(tags::put);
 		return tags;
@@ -176,19 +183,26 @@ public class AwsEngines implements CxEngines {
 
 	DynamicEngine buildDynamicEngine(@NotNull String name, @NotNull Instance instance) {
 		final String size = lookupEngineSize(instance);
-		final DateTime launchTime = new DateTime(instance.getLaunchTime());
+        final DateTime startTime = new DateTime(instance.getLaunchTime());
+        final DateTime launchTime = new DateTime(lookupLaunchTime(instance));
 		final boolean isRunning = Ec2.isRunning(instance);
 		final String scanId = lookupScanId(instance);
 		final String engineId = lookupEngineId(instance);
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning, scanId, engineId);
+				launchTime, startTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
 		}
 		return engine;
 	}
-
+	
+    private DateTime lookupLaunchTime(Instance instance) {
+        final String date = Ec2.getTag(instance, CX_LAUNCH_TIME_TAG);
+        if (Strings.isNullOrEmpty(date)) return null;
+        return ISO_PARSER.parseDateTime(date);
+    }
+    
 	private String lookupScanId(Instance instance) {
         return Ec2.getTag(instance, CX_SCAN_ID_TAG);
     }
@@ -239,6 +253,7 @@ public class AwsEngines implements CxEngines {
 	            log.debug("...EC2 instance is provisioned...");
 			} else {
 			    instance = launchEngine(engine, name, type, tags);
+			    engine.onLaunch(new DateTime(instance.getLaunchTime()));
 			}
 	
 			// refresh instance state
@@ -264,10 +279,15 @@ public class AwsEngines implements CxEngines {
                 log.debug("...EC2 instance is running...");
 			}
 			
+            engine.onStart(new DateTime(instance.getLaunchTime()));
 			final Host host = createHost(name, instance);
 			engine.setHost(host);
 			
-			if (waitForSpinup) {
+            // refresh instance state
+			instance = ec2Client.describe(instance.getInstanceId());
+            provisionedEngines.put(name, instance);
+
+            if (waitForSpinup) {
 				pingEngine(host);
 			}
 			//move this logic into caller
@@ -405,10 +425,11 @@ public class AwsEngines implements CxEngines {
 		final String publicIp = instance.getPublicIpAddress();
 		final String cxIp = awsConfig.isUsePublicUrlForCx() ? publicIp : ip;
 		final String monitorIp = awsConfig.isUsePublicUrlForMonitor() ? publicIp : ip;
-		final DateTime launchTime = new DateTime(instance.getLaunchTime());
+		final DateTime launchTime = lookupLaunchTime(instance);
+		final DateTime startTime = new DateTime(instance.getLaunchTime());
 		return new Host(name, ip, publicIp, 
 				engineClient.buildEngineServiceUrl(cxIp), 
-				engineClient.buildEngineServiceUrl(monitorIp), launchTime);
+				engineClient.buildEngineServiceUrl(monitorIp), launchTime, startTime);
 	}
 
 	private void pingEngine(Host host) throws Exception {

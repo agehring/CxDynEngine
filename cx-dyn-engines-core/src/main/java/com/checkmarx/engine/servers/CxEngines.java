@@ -30,6 +30,7 @@ public interface CxEngines {
 	public static final String CX_SIZE_TAG = "cx-engine-size";
 	public static final String CX_SCAN_ID_TAG = "cx-scan-id";
     public static final String CX_ENGINE_ID_TAG = "cx-engine-id";
+    public static final String CX_LAUNCH_TIME_TAG = "cx-launch-time";
 	
 	/**
 	 * Checkmarx server roles, used for compute instance tagging.

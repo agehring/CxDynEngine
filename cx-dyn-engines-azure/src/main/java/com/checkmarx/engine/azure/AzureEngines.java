@@ -240,6 +240,7 @@ public class AzureEngines implements CxEngines {
 			}
 			else{
 				instance = launchEngine(engine, name, type, tags);
+				engine.onLaunch(DateTime.now());
 			}
 			instanceId = instance.id();
 			//refresh instance state
@@ -266,6 +267,7 @@ public class AzureEngines implements CxEngines {
 			
 			final Host host = createHost(name, instance);
 			engine.setHost(host);
+			engine.onStart(host.getLaunchTime());
 			
 			if (waitForSpinup) {
 				pingEngine(host);

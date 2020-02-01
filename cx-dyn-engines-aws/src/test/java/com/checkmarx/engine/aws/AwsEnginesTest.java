@@ -13,9 +13,8 @@
  ******************************************************************************/
 package com.checkmarx.engine.aws;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 import java.util.List;
 import java.util.Map;
@@ -66,6 +65,20 @@ public class AwsEnginesTest extends AwsSpringTest {
 			log.debug("Stopped: {}", engine);
 		});
 		Thread.sleep(2000);
+	}
+	
+	@Test
+	public void testDateTimeParsing() {
+        log.trace("testDateTimeParsing()");
+	    
+        final DateTime now = DateTime.now();
+        
+        final String text1 = AwsEngines.ISO_FORMATTER.print(now);
+        final DateTime date = AwsEngines.ISO_PARSER.parseDateTime(text1);
+        final String text2 = AwsEngines.ISO_FORMATTER.print(date);
+        
+        log.debug("date1={}; date2={}", text1, text2);
+        assertThat(text1, is(text2));
 	}
 	
 	@Test
