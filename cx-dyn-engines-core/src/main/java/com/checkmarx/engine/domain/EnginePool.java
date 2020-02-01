@@ -46,6 +46,7 @@ public class EnginePool {
 	 * map of all engines by size; key = engine size (string)
 	 */
 	private final Map<String, Set<DynamicEngine>> allSizedEngines = Maps.newConcurrentMap();
+    private final Map<String, Set<DynamicEngine>> launchingEngines = Maps.newConcurrentMap();
 	private final Map<String, Set<DynamicEngine>> activeEngines = Maps.newConcurrentMap();
 	private final Map<String, Set<DynamicEngine>> idleEngines = Maps.newConcurrentMap();
 	private final Map<String, Set<DynamicEngine>> expiringEngines = Maps.newConcurrentMap();
@@ -82,6 +83,7 @@ public class EnginePool {
 	
 	protected EnginePool(Set<EnginePoolEntry> entries) {
 		engineMaps.put(DynamicEngine.State.ALL, allSizedEngines);
+        engineMaps.put(DynamicEngine.State.LAUNCHING, launchingEngines);
 		engineMaps.put(DynamicEngine.State.SCANNING, activeEngines);
 		engineMaps.put(DynamicEngine.State.EXPIRING, expiringEngines);
 		engineMaps.put(DynamicEngine.State.IDLE, idleEngines);
@@ -117,6 +119,12 @@ public class EnginePool {
 		engineMaps.get(state).get(size).add(engine);
 		allNamedEngines.put(engine.getName(), engine);
 		engine.setEnginePool(this);
+		
+		final Host host = engine.getHost();
+		if (host != null) {
+		    engine.onLaunch(host.getLaunchTime());
+		    engine.onStart(host.getStartTime());
+		}
 	}
 	
 	public int getEngineCount() {
@@ -152,7 +160,7 @@ public class EnginePool {
 	}
 	
 	public IdleEngineMonitor createIdleEngineMonitor(BlockingQueue<DynamicEngine> expiringEngines, int expireBufferMins) {
-		return new IdleEngineMonitor(this, expiringEngines, expireBufferMins);
+		return new IdleEngineMonitor(expiringEngines, expireBufferMins);
 	}
 
 	/**
@@ -191,21 +199,25 @@ public class EnginePool {
 		return curEngine;
 	}
 
-	public void changeState(DynamicEngine engine, State fromState, State toState) {
-		if (toState.equals(State.ALL)) 
-			throw new IllegalArgumentException("Cannot set Engine state to ALL");
-		
-		String size = engine.getSize();
-		
-		if (fromState.equals(toState)) return;
-		
-		engineMaps.get(fromState).get(size).remove(engine);
-		engineMaps.get(toState).get(size).add(engine);
+	void changeState(DynamicEngine engine, State fromState, State toState) {
+        if (toState.equals(State.ALL)) 
+            throw new IllegalArgumentException("Cannot set Engine state to ALL");
+        
+        if (fromState.equals(toState)) return;
+        
+		synchronized(this) {
+    		String size = engine.getSize();
+    		
+    		engineMaps.get(fromState).get(size).remove(engine);
+    		engineMaps.get(toState).get(size).add(engine);
+		}
 	}
-	
+
+	/*
 	void changeState(DynamicEngine engine, State toState) {
 		engine.setState(toState);
 	}
+	*/
 	
     public EngineSize getEngineSize(String size) {
         return scanSizes.get(size);
@@ -233,18 +245,13 @@ public class EnginePool {
 			if (engineList == null || engineList.size() == 0) return null;
 			
 			final DynamicEngine engine = Iterables.getFirst(engineList, null);
-			changeState(engine, toState);
+            engine.onLaunch(null);
+			//changeState(engine, toState);
+			//changeState(engine, fromState, toState);
+			//engine.setState(toState);
 			log.debug("Engine allocated: fromState={}; toState={}; pool={}", fromState, toState, this);
 			return engine;
 		}
-	}
-	
-	public void allocateExistingEngine(DynamicEngine engine) {
-        log.trace("allocateExistingEngine() : {}", engine);
-        synchronized(this) {
-            changeState(engine, State.SCANNING);
-            log.debug("Engine allocated: pool={}", this);
-        }
 	}
 	
     public List<DynamicEngine> allocateMinIdleEngines() {
@@ -263,11 +270,12 @@ public class EnginePool {
         return engines;
     }
 
+    /*
 	public void deallocateEngine(DynamicEngine engine) {
 		log.trace("deallocateEngine() : {}", engine);
 		synchronized(this) {
 			changeState(engine, State.UNPROVISIONED);
-			log.debug("Engine unallocated: pool={}", this);
+			log.debug("Engine unallocated: {}", engine);
 		}
 	}
 	
@@ -275,7 +283,7 @@ public class EnginePool {
 		log.trace("idleEngine() : {}", engine);
 		synchronized(this) {
 			changeState(engine, State.IDLE);
-			log.debug("Engine idled: pool={}", this);
+			log.debug("Engine idled: {}", engine);
 		}
 	}
 
@@ -283,9 +291,10 @@ public class EnginePool {
 		log.trace("expireEngine() : {}", engine);
 		synchronized(this) {
 			changeState(engine, State.EXPIRING);
-			log.debug("Engine expired: pool={}", this);
+			log.debug("Engine expired: {}", engine);
 		}
 	}
+	*/
 
 	public void logEngines()	{
 		allSizedEngines.forEach((size,engines)->logEngines(engines));
@@ -322,10 +331,8 @@ public class EnginePool {
 		
 		private final BlockingQueue<DynamicEngine> expiredEnginesQueue;
 		private final int expireBufferMins;
-		private final EnginePool enginePool;
 
-		public IdleEngineMonitor(EnginePool enginePool, BlockingQueue<DynamicEngine> expiredEnginesQueue, int expireBufferMins) {
-			this.enginePool = enginePool;
+		public IdleEngineMonitor(BlockingQueue<DynamicEngine> expiredEnginesQueue, int expireBufferMins) {
 			this.expiredEnginesQueue = expiredEnginesQueue;
 			this.expireBufferMins = expireBufferMins;
 		}
@@ -369,7 +376,8 @@ public class EnginePool {
             log.debug("processExpiredEngines(): {}", engine);
 
             try {
-                enginePool.expireEngine(engine);
+                engine.onExpire();
+                //enginePool.expireEngine(engine);
                 expiredEnginesQueue.put(engine);
             } catch (InterruptedException e) {
                 throw new RuntimeException("IdleEngineMonitor interrupted, exiting...");

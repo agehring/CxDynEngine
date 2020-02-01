@@ -89,8 +89,8 @@ public class EngineService implements Runnable {
 	private void shutdown() {
 		log.info("shutdown()");
 
+        // taskManager will shutdown executors and cancel all tasks
 		taskManager.shutdown();
-		// taskManager will shutdown executors and cancel all tasks
 		//engineManagerExecutor.shutdown();
 		//scanQueueExecutor.shutdown();
 	}

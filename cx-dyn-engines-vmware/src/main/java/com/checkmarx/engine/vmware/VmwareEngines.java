@@ -99,6 +99,7 @@ public class VmwareEngines implements CxEngines {
 		try {
 			if (vm == null) {
 				vm = launchEngine(name, size);
+				engine.onLaunch(DateTime.now());
 			}
 
 			vmUUID = VmwareVm.getUUID(vm);
@@ -115,6 +116,7 @@ public class VmwareEngines implements CxEngines {
 			
 			final Host host = createHost(name, vm);
 			engine.setHost(host);
+			engine.onStart(host.getLaunchTime());
 			
 			success = true;
 			
@@ -215,7 +217,7 @@ public class VmwareEngines implements CxEngines {
 		
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning, null, null);
+				launchTime, launchTime, isRunning, null, null);
 		if (isRunning) {
 			engine.setHost(createHost(name, vm));
 		}

@@ -16,16 +16,16 @@
  */
 package com.checkmarx.engine.domain;
 
-import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Maps;
 
 /**
  * @author randy@checkmarx.com
@@ -37,6 +37,7 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
 	public enum State {
 		ALL,
+		LAUNCHING,
 		SCANNING,
 		EXPIRING,
 		IDLE,
@@ -46,12 +47,13 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 	private final String name;
 	private final String size;
 	private State state = State.UNPROVISIONED;
-	private DateTime currentStateTime = DateTime.now();
+	private EngineStats stats = new EngineStats();
+	//private DateTime currentStateTime = DateTime.now();
 	private DateTime timeToExpire;
 	private Host host;
-	private Map<State, Duration> elapsedTimes = Maps.newConcurrentMap();
-	private final long expireDurationSecs;
-	private DateTime launchTime;
+	//private Map<State, Duration> elapsedTimes = Maps.newConcurrentMap();
+	private final int expireDurationSecs;
+	//private DateTime launchTime;
 	private String scanId;
 	private String engineId;
 	private EnginePool enginePool;
@@ -64,21 +66,20 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		this.enginePool = enginePool;
 	}
 	
-	public DynamicEngine(String name, String size, long expireDurationSecs) {
+	public DynamicEngine(String name, String size, int expireDurationSecs) {
 		this(name, size, expireDurationSecs, null);
 	}
 	
-	public DynamicEngine(String name, String size, long expireDurationSecs, EnginePool enginePool) {
+	public DynamicEngine(String name, String size, int expireDurationSecs, EnginePool enginePool) {
 		this.name = name;
 		this.size = size;
 		this.expireDurationSecs = expireDurationSecs;
 		this.enginePool = enginePool;
-		initElapsedTimes();
 	}
 	
 	public static DynamicEngine fromProvisionedInstance(
-			String name, String size, long expireDurationSecs,
-			DateTime launchTime, boolean isRunning, String scanId, String engineId) {
+			String name, String size, int expireDurationSecs,
+			DateTime launchTime, DateTime startTime, boolean isRunning, String scanId, String engineId) {
 	    
 	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; scanId={}; engineId={}", 
 	            name, size, expireDurationSecs, launchTime, isRunning, scanId, engineId);
@@ -86,24 +87,18 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		final DynamicEngine engine = new DynamicEngine(name, size, expireDurationSecs);
 		engine.scanId = scanId;
 		engine.engineId = engineId;
-		engine.launchTime = launchTime;
-		/*
+		engine.onLaunch(launchTime);
 		if (isRunning) {
+		    engine.onStart(startTime);
+	        /*
 		    // TODO-RJG: should we pass state?
 			engine.state = State.IDLE;
 			engine.timeToExpire = engine.calcExpirationTime();
+			*/
 		}
-		*/
 		return engine;
 	}
 	
-	private void initElapsedTimes() {
-		final Duration zero = new Duration(0);
-		for (State state : State.values()) {
-			elapsedTimes.put(state, zero);
-		}
-	}
-
 	public String getName() {
 		return name;
 	}
@@ -124,21 +119,23 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		return host == null ? null : host.getCxManagerUrl();
 	}
 	
-	public DateTime getCurrentStateTime() {
-		return currentStateTime;
-	}
-	
-	public DateTime getLaunchTime() {
-		return launchTime;
+    public DateTime getLaunchTime() {
+        return stats.getLaunchTime();
+    }
+    
+	public DateTime getStartTime() {
+		return stats.getStartTime();
 	}
 	
 	public DateTime getTimeToExpire() {
 		return timeToExpire;
 	}
 	
-	public void setState(State toState) {
+	private void setState(State toState) {
 		final State curState = this.state; 
 		log.debug("setState(): currentState={}; newState={}; {}", curState, toState, this);
+		
+		if (State.ALL.equals(toState)) throw new IllegalArgumentException("Cannot set engine state to ALL");
 		
 		//sanity check
 		if (curState.equals(toState)) {
@@ -146,79 +143,26 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 			return;
 		}
 		
-		// before changing state, update current state elapsed time
-		final Duration currentDuration = elapsedTimes.get(this.state); 
-		elapsedTimes.put(this.state, currentDuration.plus(getElapsedTime()));
-
-		// if current state is UNPROVISIONED, set launch time
-		if (curState.equals(State.UNPROVISIONED)) {
-			launchTime = DateTime.now();
-			if (host != null && host.getLaunchTime() != null) {
-				launchTime = host.getLaunchTime();
-			}
-			//timeToExpire = launchTime.plusSeconds(Math.toIntExact(this.expireDurationSecs));
-		}
-
-		// update state
 		this.state = toState;
-		currentStateTime = DateTime.now();
-		
-		// if new state is UNPROVISIONED, clear applicable items
-		switch (toState) {
-			case UNPROVISIONED :
-				host = null;
-				launchTime = null;
-				timeToExpire = null;
-				break;
-			case IDLE : 
-				timeToExpire = calcExpirationTime();
-				break;
-			case SCANNING :
-				timeToExpire = null;
-				break;
-			default:
-				break;
-		}
 		if (enginePool != null) enginePool.changeState(this, curState, toState);
 	}
 	
-	DateTime calcExpirationTime() {
-		final Duration runTime = getRunTime();
-		Long factor = Math.floorDiv(runTime.getStandardSeconds(), expireDurationSecs) + 1;
-		// set the expiration time 2 minutes before the next interval increment
-		return launchTime.plusSeconds(factor.intValue() * Math.toIntExact(expireDurationSecs));
-	}
-
-	/**
-	 * Gets the elapsed time (duration) in the current state
-	 * @return Duration since last state transition
-	 */
-	public Duration getElapsedTime() {
-		return new Duration(currentStateTime, DateTime.now());  
-	}
-	
+    public void setHost(Host server) {
+        host = server;
+        //stats.launchTime = server.getLaunchTime();
+        //rjg: ensure calls to setHost start engine
+    }
+    
+    public EngineStats getStats() {
+        return stats;
+    }
+    
 	/**
 	 * Gets the elapsed time (duration) since the engine was launched.
-	 * @return Duration since launched
+	 * @return Duration since started
 	 */
 	public Duration getRunTime() {
-		if (launchTime == null) return Duration.ZERO;
-		return new Duration(launchTime, DateTime.now());  
-	}
-
-	public void setHost(Host server) {
-		this.host = server;
-		this.launchTime = server.getLaunchTime();
-	}
-	
-	public String printElapsedTimes() {
-		final StringBuilder sb = new StringBuilder();
-		elapsedTimes.forEach((state,duration) -> {
-			if (state.equals(State.ALL)) return;
-			if (state.equals(this.state)) duration = duration.plus(getElapsedTime()); 
-			sb.append(String.format("%s:%ss, ", state, duration.getStandardSeconds()));
-		});
-		return sb.toString().replaceAll(", $", "");
+	    return stats.getCurrentRunTime();
 	}
 
 	public String getScanId() {
@@ -235,6 +179,50 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
     public void setEngineId(String engineId) {
         this.engineId = engineId;
+    }
+    
+    // Engine instance events
+    
+    public void onLaunch(DateTime launchTime) {
+        setState(State.LAUNCHING);
+        stats.onLaunch(launchTime);
+    }
+    
+    public void onStart(DateTime startTime) {
+        stats.onStart(startTime);
+    }
+    
+    public void onScan() {
+        setState(State.SCANNING);
+        timeToExpire = null;
+        stats.onScan();
+    }
+    
+    public void onIdle() {
+        setState(State.IDLE);
+        timeToExpire = stats.calcExpirationTime(expireDurationSecs);
+        scanId = null;
+        engineId = null;
+        stats.onIdle();
+    }
+    
+    public void onExpire() {
+        log.debug("onExpire()");
+        
+        setState(State.EXPIRING);
+    }
+
+    
+    public void onStop() {
+        setState(State.UNPROVISIONED);
+        host = null;
+        timeToExpire = null;
+        stats.onStop();
+    }
+    
+    public void onTerminate() {
+        onStop();
+        stats.onTerminate();
     }
 
     // name and size are only immutable properties
@@ -264,23 +252,271 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 				.add("name", name)
 				.add("size", size)
 				.add("state", state)
-				.add("elapsedTime", getElapsedTime().getStandardSeconds())
-				.add("launchTime", printInstance(launchTime))
-				.add("runTime", getRunTime().getStandardSeconds())
-				.add("currentStateTime", printInstance(currentStateTime))
+                .addValue(stats)
+                //.add("currentStateTime", currentStateTime.toString())
+                //.add("launchTime", printInstance(launchTime))
+				//.add("elapsedTime", getElapsedTime().getStandardSeconds())
+				//.add("runTime", getRunTime().getStandardSeconds())
 				.add("expireDurationSecs", expireDurationSecs)
 				.add("timeToExpire", timeToExpire)
 				.add("scanId", scanId)
                 .add("engineId", engineId)
 				.add("host", host)
-				.add("elapsedTimes", "[" + printElapsedTimes() + "]")
+				//.add("elapsedTimes", "[" + printElapsedTimes() + "]")
 				//.omitNullValues()
 				.toString();
 	}
 
-    private Object printInstance(DateTime time) {
-        if (time == null) return null;
-        return time.toInstant();
+//    private Object printInstance(DateTime time) {
+//        if (time == null) return null;
+//        return time.toInstant();
+//    }
+    
+    public static class EngineStats {
+
+        private static final Logger log = LoggerFactory.getLogger(EngineStats.class);
+
+        private DateTime launchTime;
+        private DateTime startTime;
+        private DateTime currentStateTime = DateTime.now();
+        
+        // starts when engine is provisioned (launched), resets when engine is terminated
+        private StopWatch provisionedTime = new StopWatch();     
+
+        // starts each time engine is started, resets on stop
+        private StopWatch currentRunTime = new StopWatch();
+        
+        // starts on each scan, resets when idle/stopped
+        private StopWatch currentScanTime = new StopWatch();
+        
+        // starts on idle, resets on scan/stop
+        private StopWatch currentIdleTime = new StopWatch();
+        
+        // starts/resumes on idle, pauses on scanning, resets on stop
+        private StopWatch cycleIdleTime = new StopWatch();
+
+        // starts/resumes on scan, pauses on idle, resets on stop
+        private StopWatch cycleScanTime = new StopWatch();
+        
+        // starts/resumes on idle, pauses when scanning, resets on terminate
+        private StopWatch totalIdleTime = new StopWatch();
+
+        // starts/resumes on start, pauses on stop, resets on terminate
+        private StopWatch totalRunTime = new StopWatch();
+
+        // starts/resumes on scan, pauses when idle/stopped, resets on terminate
+        private StopWatch totalScanTime = new StopWatch();
+        
+        // starts/resumes on stop, pauses when started, resets on terminate
+        private StopWatch totalStoppedTime = new StopWatch();
+
+        private long scanCount;
+        
+        public DateTime getLaunchTime() {
+            return launchTime;
+        }
+
+        public DateTime getStartTime() {
+            return startTime;
+        }
+        
+        public DateTime getCurrentStateTime() {
+            return currentStateTime;
+        }
+
+        public Duration getProvisionedTime() {
+            return new Duration(provisionedTime.getTime());
+        }
+
+        public Duration getCurrentRunTime() {
+            return new Duration(currentRunTime.getTime());
+        }
+
+        public Duration getCurrentScanTime() {
+            return new Duration(currentScanTime.getTime());
+        }
+
+        public Duration getCurrentIdleTime() {
+            return new Duration(currentIdleTime.getTime());
+        }
+
+        public Duration getTotalRunTime() {
+            return new Duration(totalRunTime.getTime());
+        }
+
+        public Duration getCycleIdleTime() {
+            return new Duration(cycleIdleTime.getTime());
+        }
+
+        public Duration getCycleScanTime() {
+            return new Duration(cycleScanTime.getTime());
+        }
+
+        public Duration getTotalIdleTime() {
+            return new Duration(totalIdleTime.getTime());
+        }
+
+        public Duration getTotalScanTime() {
+            return new Duration(totalScanTime.getTime());
+        }
+
+        public Duration getTotalStoppedTime() {
+            return new Duration(totalStoppedTime.getTime());
+        }
+
+        public long getScanCount() {
+            return scanCount;
+        }
+
+        private void startOrResume(StopWatch stopWatch) {
+            if (stopWatch.isSuspended()) {
+                stopWatch.resume();
+            } else if (stopWatch.isStopped()) {
+                stopWatch.start();
+            }
+        }
+
+        private void suspendIfStarted(StopWatch stopWatch) {
+            if (stopWatch.isStarted() && !stopWatch.isSuspended()) {
+                stopWatch.suspend();
+            }
+        }
+        
+        private DateTime calcExpirationTime(int expirationSeconds) {
+            if (startTime == null) 
+                throw new IllegalStateException("Engine has not been started, cannot calculate expiration time");
+            
+            final Duration runDuration = new Duration(currentRunTime.getTime());
+            final Long factor = Math.floorDiv(runDuration.getStandardSeconds(), expirationSeconds) + 1;
+            return startTime.plusSeconds(factor.intValue() * expirationSeconds);
+        }
+        
+        public boolean isLaunched() {
+            return launchTime != null;
+        }
+        
+        public boolean isRunning() {
+            return startTime != null;
+        }
+        
+        // events
+        public void onLaunch(@Nullable DateTime launchTime) {
+            log.debug("onLaunch()");
+            
+            if (provisionedTime.isStopped())
+                provisionedTime.start();
+            this.launchTime = launchTime != null ? launchTime : new DateTime(provisionedTime.getStartTime());
+            //onStart(launchTime);
+        }
+        
+        public void onStart(@Nullable DateTime startTime) {
+            log.debug("onStart()");
+
+            if (currentRunTime.isStopped()) {
+                currentRunTime.start();
+                currentStateTime = startTime;
+            }
+            this.startTime = startTime != null ? startTime : new DateTime(currentRunTime.getStartTime());
+            if (launchTime == null) {
+                onLaunch(startTime);
+            }
+            startOrResume(totalRunTime);
+            suspendIfStarted(totalStoppedTime);
+        }
+        
+        public void onIdle() {
+            log.debug("onIdle()");
+
+            if (currentIdleTime.isStopped()) {
+                currentIdleTime.start();
+                currentStateTime = new DateTime(currentIdleTime.getStartTime());
+            }
+            startOrResume(cycleIdleTime);
+            startOrResume(totalIdleTime);
+            currentScanTime.reset();
+            suspendIfStarted(cycleScanTime);
+            suspendIfStarted(totalScanTime);
+        }
+        
+        public void onScan() {
+            log.debug("onScan()");
+
+            scanCount++;
+            currentScanTime.start();
+            startOrResume(cycleScanTime);
+            startOrResume(totalScanTime);
+            currentIdleTime.reset();
+            suspendIfStarted(cycleIdleTime);
+            suspendIfStarted(totalIdleTime);
+            currentStateTime = new DateTime(currentScanTime.getStartTime());
+        }
+        
+        public void onExpiring() {
+            log.debug("onExpiring()");
+            
+            // rjg: for now, not tracking expiring state 
+        }
+
+        public void onStop() {
+            log.debug("onStop()");
+
+            currentStateTime = DateTime.now();
+            startOrResume(totalStoppedTime);
+            startTime = null;
+            currentRunTime.reset();
+            suspendIfStarted(totalRunTime);
+            currentIdleTime.reset();
+            cycleIdleTime.reset();
+            suspendIfStarted(totalIdleTime);
+            currentScanTime.reset();
+            cycleScanTime.reset();
+            suspendIfStarted(totalScanTime);
+        }
+        
+        public void onTerminate() {
+            log.debug("onTerminate()");
+            
+            currentStateTime = DateTime.now();
+            launchTime = null;
+            startTime = null;
+            provisionedTime.reset();
+            currentIdleTime.reset();
+            currentRunTime.reset();
+            currentScanTime.reset();
+            cycleIdleTime.reset();
+            cycleScanTime.reset();
+            totalRunTime.reset();
+            totalIdleTime.reset();
+            totalScanTime.reset();
+            totalStoppedTime.reset();
+        }
+        
+        public void reset() {
+            log.debug("reset()");
+
+            scanCount = 0L;
+            onTerminate();
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                .add("scanCount", scanCount)
+                .add("currentStateAt", currentStateTime)
+                .add("launchedAt", launchTime)
+                .add("startedAt", startTime)
+                .add("provisionedTime", provisionedTime)
+                .add("currentIdleTime", currentIdleTime)
+                .add("currentRunTime", currentRunTime)
+                .add("currentScanTime", currentScanTime)
+                .add("cycleIdleTime", cycleIdleTime)
+                .add("cycleScanTime", cycleScanTime)
+                .add("totalRunTime", totalRunTime)
+                .add("totalIdleTime", totalIdleTime)
+                .add("totalScanTime", totalScanTime)
+                .add("totalStoppedTime", totalStoppedTime)
+                .toString();
+        }
     }
 
 }
