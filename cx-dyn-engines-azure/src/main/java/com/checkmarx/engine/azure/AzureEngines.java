@@ -335,7 +335,7 @@ public class AzureEngines implements CxEngines {
 				instance = azureClient.describe(instanceId);
 				provisionedEngines.put(name, instance);
                 engine.onStop();
-                runScript(awsConfig.getScriptOnStop(), engine);
+                runScript(azureConfig.getScriptOnStop(), engine);
 			}
 			success = true;
 			
