@@ -46,6 +46,7 @@ public class EnginePool {
 	 * map of all engines by size; key = engine size (string)
 	 */
 	private final Map<String, Set<DynamicEngine>> allSizedEngines = Maps.newConcurrentMap();
+    private final Map<String, Set<DynamicEngine>> allocatedEngines = Maps.newConcurrentMap();
     private final Map<String, Set<DynamicEngine>> launchingEngines = Maps.newConcurrentMap();
 	private final Map<String, Set<DynamicEngine>> activeEngines = Maps.newConcurrentMap();
 	private final Map<String, Set<DynamicEngine>> idleEngines = Maps.newConcurrentMap();
@@ -83,6 +84,7 @@ public class EnginePool {
 	
 	protected EnginePool(Set<EnginePoolEntry> entries) {
 		engineMaps.put(DynamicEngine.State.ALL, allSizedEngines);
+        engineMaps.put(DynamicEngine.State.ALLOCATED, allocatedEngines);
         engineMaps.put(DynamicEngine.State.LAUNCHING, launchingEngines);
 		engineMaps.put(DynamicEngine.State.SCANNING, activeEngines);
 		engineMaps.put(DynamicEngine.State.EXPIRING, expiringEngines);
@@ -232,9 +234,9 @@ public class EnginePool {
 		return null;
 	}
 	
-	public DynamicEngine allocateEngine(EngineSize scanSize, State fromState, State toState) {
-		log.trace("allocateEngine() : size={}; fromState={}; toState={}", 
-		        scanSize.getName(), fromState, toState);
+	public DynamicEngine allocateEngine(EngineSize scanSize, State fromState) {
+		log.trace("allocateEngine() : size={}; fromState={}", 
+		        scanSize.getName(), fromState);
 		
 		final String size = scanSize.getName();
 		final Map<String, Set<DynamicEngine>> engineMap = engineMaps.get(fromState);
@@ -245,11 +247,10 @@ public class EnginePool {
 			if (engineList == null || engineList.size() == 0) return null;
 			
 			final DynamicEngine engine = Iterables.getFirst(engineList, null);
-            engine.onLaunch(null);
-			//changeState(engine, toState);
+            engine.onAllocate();
 			//changeState(engine, fromState, toState);
 			//engine.setState(toState);
-			log.debug("Engine allocated: fromState={}; toState={}; pool={}", fromState, toState, this);
+			log.debug("Engine allocated: fromState={}; pool={}", fromState, this);
 			return engine;
 		}
 	}
@@ -262,7 +263,7 @@ public class EnginePool {
             final int count = idleEngines.get(size).size() + activeEngines.get(size).size();
             final EngineSize scanSize = scanSizes.get(size);
             for (int i = count; i < minCount; i++) {
-                final DynamicEngine engine = allocateEngine(scanSize, State.UNPROVISIONED, State.IDLE);
+                final DynamicEngine engine = allocateEngine(scanSize, State.UNPROVISIONED);
                 if (engine == null) continue;
                 engines.add(engine);
             }

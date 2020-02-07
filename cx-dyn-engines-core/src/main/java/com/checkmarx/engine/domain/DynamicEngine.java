@@ -18,9 +18,11 @@ package com.checkmarx.engine.domain;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
@@ -37,7 +39,8 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
 	public enum State {
 		ALL,
-		LAUNCHING,
+		ALLOCATED,    // transition state during engine allocation to prevent race condition
+		LAUNCHING,    // transition state during engine provisioning
 		SCANNING,
 		EXPIRING,
 		IDLE,
@@ -77,24 +80,29 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		this.enginePool = enginePool;
 	}
 	
-	public static DynamicEngine fromProvisionedInstance(
+    public static DynamicEngine fromProvisionedInstance(
+            String name, String size, int expireDurationSecs,
+            DateTime launchTime, DateTime startTime, boolean isRunning, 
+            String scanId, String engineId) {
+        return fromProvisionedInstance(name, size, expireDurationSecs, launchTime, startTime, isRunning, 
+                scanId, engineId, 0L);
+    }
+
+    public static DynamicEngine fromProvisionedInstance(
 			String name, String size, int expireDurationSecs,
-			DateTime launchTime, DateTime startTime, boolean isRunning, String scanId, String engineId) {
+			DateTime launchTime, DateTime startTime, boolean isRunning, 
+			String scanId, String engineId, long scanCount) {
 	    
-	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; scanId={}; engineId={}", 
-	            name, size, expireDurationSecs, launchTime, isRunning, scanId, engineId);
+	    log.debug("fromProvisionedInstance(): name={}; size={}; expire={}; launchTime={}; isRunning={}; "
+	            + "scanId={}; engineId={}; scanCount={}", 
+	            name, size, expireDurationSecs, launchTime, isRunning, scanId, engineId, scanCount);
 	    
 		final DynamicEngine engine = new DynamicEngine(name, size, expireDurationSecs);
 		engine.scanId = scanId;
 		engine.engineId = engineId;
-		engine.onLaunch(launchTime);
+		engine.onLaunch(launchTime, scanCount);
 		if (isRunning) {
 		    engine.onStart(startTime);
-	        /*
-		    // TODO-RJG: should we pass state?
-			engine.state = State.IDLE;
-			engine.timeToExpire = engine.calcExpirationTime();
-			*/
 		}
 		return engine;
 	}
@@ -147,10 +155,9 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 		if (enginePool != null) enginePool.changeState(this, curState, toState);
 	}
 	
+    //rjg: ensure caller to setHost calls engine.onStart()
     public void setHost(Host server) {
         host = server;
-        //stats.launchTime = server.getLaunchTime();
-        //rjg: ensure calls to setHost start engine
     }
     
     public EngineStats getStats() {
@@ -181,24 +188,61 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         this.engineId = engineId;
     }
     
-    // Engine instance events
+    // Engine instance events (state transition events)
     
-    public void onLaunch(DateTime launchTime) {
+    public void onAllocate() {
+        log.debug("onAllocate()");
+        
+        setState(State.ALLOCATED);
+    }
+
+    /*
+     * Engine state machine transition events
+     */
+    
+    /**
+     * Call when launching/provisioning a new engine
+     * 
+     * @param launchTime datetime engine was launched, if null current time will be used
+     */
+    public void onLaunch(@Nullable DateTime launchTime) {
+        onLaunch(launchTime, 0L);
+    }
+
+    /**
+     * Call before onStart() when a pre-existing engine is found during startup.
+     * 
+     * @param launchTime datetime engine was originally launched
+     * @param scanCount pre-existing scan count for engine
+     */
+    public void onLaunch(DateTime launchTime, long scanCount) {
+        log.debug("onLaunch() : launchTime={}; scanCount={}", launchTime, scanCount);
         setState(State.LAUNCHING);
-        stats.onLaunch(launchTime);
+        stats.onLaunch(launchTime, scanCount);
     }
     
+    /**
+     * Call when starting an engine, or when pre-existing engine found during startup
+     * 
+     * @param startTime datetime engine was originally started
+     */
     public void onStart(DateTime startTime) {
+        log.debug("onStart() : startTime={}", startTime);
+        
         stats.onStart(startTime);
     }
     
     public void onScan() {
+        log.debug("onScan()");
+        
         setState(State.SCANNING);
         timeToExpire = null;
         stats.onScan();
     }
     
     public void onIdle() {
+        log.debug("onIdle()");
+        
         setState(State.IDLE);
         timeToExpire = stats.calcExpirationTime(expireDurationSecs);
         scanId = null;
@@ -214,6 +258,8 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
     
     public void onStop() {
+        log.debug("onStop()");
+
         setState(State.UNPROVISIONED);
         host = null;
         timeToExpire = null;
@@ -221,6 +267,8 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
     }
     
     public void onTerminate() {
+        log.debug("onTerminate()");
+
         onStop();
         stats.onTerminate();
     }
@@ -253,25 +301,14 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 				.add("size", size)
 				.add("state", state)
                 .addValue(stats)
-                //.add("currentStateTime", currentStateTime.toString())
-                //.add("launchTime", printInstance(launchTime))
-				//.add("elapsedTime", getElapsedTime().getStandardSeconds())
-				//.add("runTime", getRunTime().getStandardSeconds())
 				.add("expireDurationSecs", expireDurationSecs)
 				.add("timeToExpire", timeToExpire)
 				.add("scanId", scanId)
                 .add("engineId", engineId)
 				.add("host", host)
-				//.add("elapsedTimes", "[" + printElapsedTimes() + "]")
-				//.omitNullValues()
 				.toString();
 	}
 
-//    private Object printInstance(DateTime time) {
-//        if (time == null) return null;
-//        return time.toInstant();
-//    }
-    
     public static class EngineStats {
 
         private static final Logger log = LoggerFactory.getLogger(EngineStats.class);
@@ -279,6 +316,8 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         private DateTime launchTime;
         private DateTime startTime;
         private DateTime currentStateTime = DateTime.now();
+        private Duration priorRunTime = Duration.ZERO;
+        private Duration priorProvisionTime = Duration.ZERO;
         
         // starts when engine is provisioned (launched), resets when engine is terminated
         private StopWatch provisionedTime = new StopWatch();     
@@ -325,11 +364,11 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         }
 
         public Duration getProvisionedTime() {
-            return new Duration(provisionedTime.getTime());
+            return calcElapsedTime(priorProvisionTime, provisionedTime);
         }
 
         public Duration getCurrentRunTime() {
-            return new Duration(currentRunTime.getTime());
+            return calcElapsedTime(priorRunTime, currentRunTime);
         }
 
         public Duration getCurrentScanTime() {
@@ -338,10 +377,6 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
         public Duration getCurrentIdleTime() {
             return new Duration(currentIdleTime.getTime());
-        }
-
-        public Duration getTotalRunTime() {
-            return new Duration(totalRunTime.getTime());
         }
 
         public Duration getCycleIdleTime() {
@@ -356,6 +391,10 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
             return new Duration(totalIdleTime.getTime());
         }
 
+        public Duration getTotalRunTime() {
+            return calcElapsedTime(priorRunTime, totalRunTime);
+        }
+
         public Duration getTotalScanTime() {
             return new Duration(totalScanTime.getTime());
         }
@@ -366,6 +405,11 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
 
         public long getScanCount() {
             return scanCount;
+        }
+
+        private Duration calcElapsedTime(Duration priorTime, StopWatch currentTimer) {
+            final Duration currentElapsed = new Duration(currentTimer.getTime());
+            return currentElapsed.withDurationAdded(priorTime, 1);
         }
 
         private void startOrResume(StopWatch stopWatch) {
@@ -399,33 +443,69 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
             return startTime != null;
         }
         
-        // events
+        /*
+         * Statistic events
+         */
+
+        /**
+         * Call when an engine is provisioned
+         *
+         * @param launchTime datetime when the engine was launched; 
+         *                   if null, the current time will be used
+         */
         public void onLaunch(@Nullable DateTime launchTime) {
-            log.debug("onLaunch()");
+            onLaunch(launchTime, 0L);
+        }
+
+        /**
+         * Call when a pre-existing engine is found during startup
+         *
+         * @param launchTime datetime when the engine was launched; 
+         *                   if null, the current time will be used
+         * @param scanCount for pre-existing engines, the current scan count; otherwise 0L
+         */
+        public void onLaunch(@Nullable DateTime launchTime, long scanCount) {
+            log.trace("onLaunch(): launchTime={}; scanCount={}", launchTime, scanCount);
             
             if (provisionedTime.isStopped())
                 provisionedTime.start();
-            this.launchTime = launchTime != null ? launchTime : new DateTime(provisionedTime.getStartTime());
-            //onStart(launchTime);
+            if (launchTime != null) {
+                priorProvisionTime = new Duration(launchTime.getMillis(), provisionedTime.getStartTime());
+                this.launchTime = launchTime; 
+            } else {
+                this.launchTime = new DateTime(provisionedTime.getStartTime());
+            }
+            this.scanCount = scanCount;
         }
         
+        /**
+         * Call when an engine is started, or when pre-existing engine found during startup
+         *
+         * @param startTime datetime when the engine was started; 
+         *                  if null, the current time will be used
+         */
         public void onStart(@Nullable DateTime startTime) {
-            log.debug("onStart()");
+            log.trace("onStart(): startTime={}", startTime);
 
             if (currentRunTime.isStopped()) {
                 currentRunTime.start();
                 currentStateTime = startTime;
             }
-            this.startTime = startTime != null ? startTime : new DateTime(currentRunTime.getStartTime());
+            if (startTime != null) {
+                priorRunTime = new Duration(startTime.getMillis(), currentRunTime.getStartTime());
+                this.startTime = startTime; 
+            } else {
+                this.startTime = new DateTime(currentRunTime.getStartTime());
+            }
             if (launchTime == null) {
-                onLaunch(startTime);
+                onLaunch(startTime, 0L);
             }
             startOrResume(totalRunTime);
             suspendIfStarted(totalStoppedTime);
         }
         
         public void onIdle() {
-            log.debug("onIdle()");
+            log.trace("onIdle()");
 
             if (currentIdleTime.isStopped()) {
                 currentIdleTime.start();
@@ -439,7 +519,7 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         }
         
         public void onScan() {
-            log.debug("onScan()");
+            log.trace("onScan()");
 
             scanCount++;
             currentScanTime.start();
@@ -451,14 +531,8 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
             currentStateTime = new DateTime(currentScanTime.getStartTime());
         }
         
-        public void onExpiring() {
-            log.debug("onExpiring()");
-            
-            // rjg: for now, not tracking expiring state 
-        }
-
         public void onStop() {
-            log.debug("onStop()");
+            log.trace("onStop()");
 
             currentStateTime = DateTime.now();
             startOrResume(totalStoppedTime);
@@ -474,7 +548,7 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         }
         
         public void onTerminate() {
-            log.debug("onTerminate()");
+            log.trace("onTerminate()");
             
             currentStateTime = DateTime.now();
             launchTime = null;
@@ -492,29 +566,39 @@ public class DynamicEngine implements Comparable<DynamicEngine> {
         }
         
         public void reset() {
-            log.debug("reset()");
+            log.trace("reset()");
 
             scanCount = 0L;
             onTerminate();
+        }
+
+        private Instant printInstant(DateTime time) {
+            if (time == null) return null;
+            return time.toInstant();
+        }
+        
+        private String printDuration(Duration duration) {
+            if (duration == null) return null;
+            return DurationFormatUtils.formatDurationHMS(duration.getMillis());
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
                 .add("scanCount", scanCount)
-                .add("currentStateAt", currentStateTime)
-                .add("launchedAt", launchTime)
-                .add("startedAt", startTime)
-                .add("provisionedTime", provisionedTime)
+                .add("currentStateAt", printInstant(currentStateTime))
+                .add("launchedAt", printInstant(launchTime))
+                .add("startedAt", printInstant(startTime))
                 .add("currentIdleTime", currentIdleTime)
-                .add("currentRunTime", currentRunTime)
+                .add("currentRunTime", printDuration(getCurrentRunTime()))
                 .add("currentScanTime", currentScanTime)
                 .add("cycleIdleTime", cycleIdleTime)
                 .add("cycleScanTime", cycleScanTime)
-                .add("totalRunTime", totalRunTime)
+                .add("totalRunTime", printDuration(getTotalRunTime()))
                 .add("totalIdleTime", totalIdleTime)
                 .add("totalScanTime", totalScanTime)
                 .add("totalStoppedTime", totalStoppedTime)
+                .add("provisionedTime", printDuration(getProvisionedTime()))
                 .toString();
         }
     }

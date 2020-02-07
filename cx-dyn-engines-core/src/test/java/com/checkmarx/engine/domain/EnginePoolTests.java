@@ -110,28 +110,29 @@ public class EnginePoolTests {
 		
 		DynamicEngine engine;
 
-		State scanning = State.SCANNING;
-		
-		engine = pool.allocateEngine(SMALL, State.IDLE, scanning);
+		engine = pool.allocateEngine(SMALL, State.IDLE);
 		assertThat(engine, is(nullValue()));
-		engine = pool.allocateEngine(SMALL, State.EXPIRING, scanning);
+		engine = pool.allocateEngine(SMALL, State.EXPIRING);
 		assertThat(engine, is(nullValue()));
-		engine = pool.allocateEngine(SMALL, State.SCANNING, scanning);
+		engine = pool.allocateEngine(SMALL, State.SCANNING);
 		assertThat(engine, is(nullValue()));
 
-		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, scanning);
+		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED);
 		assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
 		engine.onStart(DateTime.now());
 		engine.onIdle();
-		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, scanning);
+		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED);
 		assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
         engine.onStart(DateTime.now());
         engine.onIdle();
-		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, scanning);
+		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED);
 		assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
         engine.onStart(DateTime.now());
         engine.onIdle();
-		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, scanning);
+		engine = pool.allocateEngine(SMALL, State.UNPROVISIONED);
 		assertThat(engine, is(nullValue()));
 	}
 	
@@ -142,32 +143,40 @@ public class EnginePoolTests {
         // pool starts with 3 min engines
 
         // set one engine to IDLE
-        DynamicEngine engine = pool.allocateEngine(SMALL, State.UNPROVISIONED, State.IDLE);
+        DynamicEngine engine = pool.allocateEngine(SMALL, State.UNPROVISIONED);
         assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
         engine.onStart(DateTime.now());
         engine.onIdle();
+        assertThat(engine.getState(), is(State.IDLE));
 
-        engine = pool.allocateEngine(MEDIUM, State.UNPROVISIONED, State.SCANNING);
+        engine = pool.allocateEngine(MEDIUM, State.UNPROVISIONED);
         assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
         engine.onStart(DateTime.now());
         engine.onScan();
+        assertThat(engine.getState(), is(State.SCANNING));
 
         // should allocate 1 remaining min SMALL engine
         final List<DynamicEngine> engines = pool.allocateMinIdleEngines();
-        assertEquals(1, engines.size());
-        assertEquals(SMALL.getName(), engines.get(0).getSize());
+        assertThat(engines.size(), is(1));
+        engine = engines.get(0);
+        assertThat(engine.getSize(), is(SMALL.getName()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
 
         // should have one remaining SMALL IDLE engine
-        engine = pool.allocateEngine(SMALL, State.IDLE, State.SCANNING);
+        engine = pool.allocateEngine(SMALL, State.IDLE);
         assertThat(engine, is(notNullValue()));
+        assertThat(engine.getState(), is(State.ALLOCATED));
         engine.onScan();
+        assertThat(engine.getState(), is(State.SCANNING));
 
         // should NOT have a MEDIUM IDLE engine
-        engine = pool.allocateEngine(MEDIUM, State.IDLE, State.SCANNING);
+        engine = pool.allocateEngine(MEDIUM, State.IDLE);
         assertThat(engine, is(nullValue()));
 
         // should have no LARGE IDLE engines
-        engine = pool.allocateEngine(LARGE, State.IDLE, State.SCANNING);
+        engine = pool.allocateEngine(LARGE, State.IDLE);
         assertThat(engine, is(nullValue()));
 	}
 	

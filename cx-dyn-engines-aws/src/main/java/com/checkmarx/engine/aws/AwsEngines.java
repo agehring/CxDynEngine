@@ -188,9 +188,10 @@ public class AwsEngines implements CxEngines {
 		final boolean isRunning = Ec2.isRunning(instance);
 		final String scanId = lookupScanId(instance);
 		final String engineId = lookupEngineId(instance);
+		final long scanCount = lookupScanCount(instance);
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, startTime, isRunning, scanId, engineId);
+				launchTime, startTime, isRunning, scanId, engineId, scanCount);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
 		}
@@ -209,6 +210,11 @@ public class AwsEngines implements CxEngines {
 	
     private String lookupEngineId(Instance instance) {
         return Ec2.getTag(instance, CX_ENGINE_ID_TAG);
+    }
+    
+    private long lookupScanCount(Instance instance) {
+        final String count = Ec2.getTag(instance, CX_SCAN_COUNT_TAG);
+        return Strings.isNullOrEmpty(count) ? 0L : Long.valueOf(count);
     }
     
     private String lookupEngineSize(Instance instance) {
@@ -258,18 +264,22 @@ public class AwsEngines implements CxEngines {
 	
 			// refresh instance state
             instanceId = instance.getInstanceId();
-            instance = ec2Client.describe(instance.getInstanceId());
+            instance = ec2Client.describe(instanceId);
             provisionedEngines.put(name, instance);
 			
 			if (Ec2.isTerminated(instance)) {
 			    log.debug("...EC2 instance is terminated, launching new instance...");
 				instance = launchEngine(engine, name, type, tags);
 				instanceId = instance.getInstanceId();
+                engine.onLaunch(new DateTime(instance.getLaunchTime()));
             } else if (Ec2.isStopping(instance)) {
                 final int sleep = awsConfig.getStopWaitTimeSecs();
-                log.debug("...EC2 instance is stopping, sleeping {}s...", sleep);
-                Thread.sleep(sleep * 1000);
-                log.debug("...EC2 instance is stopping, starting instance...");
+                do {
+                    log.debug("...EC2 instance is stopping, sleeping {}s...", sleep);
+                    Thread.sleep(sleep * 1000);
+                    instance = ec2Client.describe(instanceId);
+                } while (Ec2.isStopping(instance));
+                log.debug("...EC2 instance is stopped, starting instance...");
                 instance = ec2Client.start(instanceId);
 			} else if (!Ec2.isRunning(instance)) {
                 log.debug("...EC2 instance is stopped, starting instance...");
@@ -279,12 +289,11 @@ public class AwsEngines implements CxEngines {
                 log.debug("...EC2 instance is running...");
 			}
 			
+            instance = ec2Client.describe(instanceId);
             engine.onStart(new DateTime(instance.getLaunchTime()));
 			final Host host = createHost(name, instance);
 			engine.setHost(host);
 			
-            // refresh instance state
-			instance = ec2Client.describe(instance.getInstanceId());
             provisionedEngines.put(name, instance);
 
             if (waitForSpinup) {
@@ -293,7 +302,6 @@ public class AwsEngines implements CxEngines {
 			//move this logic into caller
 			runScript(awsConfig.getScriptOnLaunch(), engine);
 			
-			//engine.setState(State.IDLE);
 			success = true;
         } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
             log.warn("Error occurred while launching AWS EC2 instance; name={}; {}", name, engine, e);
@@ -357,15 +365,21 @@ public class AwsEngines implements CxEngines {
 					action, success, name, instanceId, timer.elapsed(TimeUnit.MILLISECONDS), Ec2.print(instance)); 
 		}
 	}
+	
+	private String emptyIfNull(String tag) {
+	    return tag == null ? "" : tag;
+	}
 
     @Override
     public void onScanAssigned(DynamicEngine toEngine) {
         final String scanId = toEngine.getScanId();
         final String engineId = toEngine.getEngineId();
+        final long scanCount = toEngine.getStats().getScanCount();
         log.debug("onScanAssigned(): scanId={}; engineId={}; {}", scanId, engineId, toEngine);
-        final Tag tag = new Tag(CX_SCAN_ID_TAG, scanId);
-        final Tag idTag = new Tag(CX_ENGINE_ID_TAG, engineId);
-        tagEngine(toEngine, tag, idTag);
+        final Tag tag = new Tag(CX_SCAN_ID_TAG, emptyIfNull(scanId));
+        final Tag idTag = new Tag(CX_ENGINE_ID_TAG, emptyIfNull(engineId));
+        final Tag count = new Tag(CX_SCAN_COUNT_TAG, String.valueOf(scanCount));
+        tagEngine(toEngine, tag, idTag, count);
     }
 
     @Override
@@ -444,10 +458,14 @@ public class AwsEngines implements CxEngines {
 		final String ip = awsConfig.isUsePublicUrlForMonitor() ? host.getPublicIp(): host.getIp();
 		try {
 			pingTask.execute(() -> {
-			    do {
-                    log.trace("Engine ping failed, waiting to retry; sleep={}ms; {}", pollingMillis, host); 
+			    final Stopwatch timer = Stopwatch.createStarted();
+                TimeUnit.MILLISECONDS.sleep(pollingMillis);
+			    while (!engineClient.pingEngine(ip)) {
+                    log.debug("Engine ping failed, waiting to retry; sleep={}ms; elapsedTime={}s; {}", 
+                            pollingMillis, timer.elapsed(TimeUnit.SECONDS), host);
                     TimeUnit.MILLISECONDS.sleep(pollingMillis);
-			    } while (!engineClient.pingEngine(ip));
+			    }
+                log.debug("Engine online; elapsed={}s; {}", timer.elapsed(TimeUnit.SECONDS), host);
 				return true;
 			});
         } catch (CancellationException | InterruptedException | RejectedExecutionException e) {
