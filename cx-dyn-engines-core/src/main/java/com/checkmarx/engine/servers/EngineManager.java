@@ -508,7 +508,7 @@ public class EngineManager implements Runnable {
 			log.trace("allocateIdleEngine(): size={}; {}", size, scan);
 
 			final State state = State.IDLE;
-			final DynamicEngine engine = pool.allocateEngine(size, state, State.SCANNING);
+			final DynamicEngine engine = pool.allocateEngine(size, state);
 			
 			if (engine == null) return false;
 			
@@ -522,7 +522,7 @@ public class EngineManager implements Runnable {
 			if (atScanLimit()) return false;
 			
 			final State state = DynamicEngine.State.UNPROVISIONED;
-			final DynamicEngine engine = pool.allocateEngine(size, state, State.SCANNING);
+			final DynamicEngine engine = pool.allocateEngine(size, state);
 			
 			if (engine == null) return false;
 
@@ -655,7 +655,6 @@ public class EngineManager implements Runnable {
 				unRegisterEngine(engineId);
 				engineProvisioner.onScanRemoved(engine);
 				engine.onIdle();
-				//pool.idleEngine(engine);
 				
 				engineScans.remove(scanId);
 				cxEngines.remove(engineId);

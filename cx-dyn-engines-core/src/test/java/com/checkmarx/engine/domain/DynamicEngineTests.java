@@ -39,6 +39,7 @@ public class DynamicEngineTests {
         
         final DynamicEngine engine = new DynamicEngine("name", "S", EXPIRE_DURATION);
         final EngineStats stats = engine.getStats();
+        log.info("{}", stats);
         assertThat(stats, is(notNullValue()));
         
         assertThat(stats.getScanCount(), is(0L));
@@ -185,5 +186,26 @@ public class DynamicEngineTests {
 		assertThat(engine.getRunTime(), is(Duration.ZERO));
 		assertThat(engine.getTimeToExpire(), is(nullValue()));
 	}
+	
+    @Test
+    public void testPriorRuntime() throws Exception {
+        log.trace("testPriorRuntime()");
+
+        final DynamicEngine engine = new DynamicEngine("name", "S", EXPIRE_DURATION);
+        final EngineStats stats = engine.getStats();
+        log.debug("{}", stats);
+        assertThat(stats, is(notNullValue()));
+        
+        final Duration HOUR = new Duration(1000L * 60 * 60);
+        
+        DateTime prior = DateTime.now().minusHours(1);
+        engine.onLaunch(prior);
+        engine.onStart(prior);
+        Thread.sleep(1000);
+        log.debug("{}", stats);
+        assertThat(stats.getCurrentRunTime(), is(greaterThan(HOUR)));
+        assertThat(stats.getTotalRunTime(), is(greaterThan(HOUR)));
+        assertThat(stats.getProvisionedTime(), is(greaterThan(HOUR)));
+    }
 
 }

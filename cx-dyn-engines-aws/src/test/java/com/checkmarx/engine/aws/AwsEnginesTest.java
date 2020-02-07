@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
 import com.checkmarx.engine.domain.DynamicEngine;
+import com.checkmarx.engine.domain.DynamicEngine.EngineStats;
 import com.checkmarx.engine.domain.DynamicEngine.State;
 import com.checkmarx.engine.domain.EngineSize;
 import com.checkmarx.engine.domain.Host;
@@ -144,25 +145,39 @@ public class AwsEnginesTest extends AwsSpringTest {
 	public void testLaunchAndStop() throws Exception {
 		log.trace("testLaunchAndStop()");
 		
-		Assume.assumeTrue(super.runAwsIntegrationTests());
-		
 		final EngineSize size = new EngineSize("S", 1, 50000);
 		final DynamicEngine engine = new DynamicEngine(NAME, size.getName(), 300);
+		final EngineStats stats = engine.getStats();
 		log.debug("Pre-launch: {}", engine);
 		assertThat(engine.getState(), is(State.UNPROVISIONED));
 		
 		awsEngines.launch(engine, size, true);
 		runningEngines.add(engine);
 		
-		log.debug("Launched: {}", engine);
-		assertThat(engine.getName(), is(NAME));
-		assertThat(engine.getHost(), is(notNullValue()));
-		assertThat(engine.getHost().getName(), is(NAME));
-		assertThat(engine.getHost().getIp(), is(notNullValue()));
-		assertThat(engine.getHost().getCxManagerUrl(), is(notNullValue()));
-	
-		Thread.sleep(3000);
-
+        log.debug("Launched: {}", engine);
+        assertThat(engine.getName(), is(NAME));
+        assertThat(engine.getHost(), is(notNullValue()));
+        assertThat(engine.getHost().getName(), is(NAME));
+        assertThat(engine.getHost().getIp(), is(notNullValue()));
+        assertThat(engine.getHost().getCxManagerUrl(), is(notNullValue()));
+        Thread.sleep(1000);
+        assertThat(stats.getCurrentRunTime().getStandardSeconds(), is(greaterThanOrEqualTo(1L)));
+    
+        engine.setScanId("123");
+        engine.setEngineId("456");
+        engine.onScan();
+        awsEngines.onScanAssigned(engine);
+        Thread.sleep(1000);
+        assertThat(stats.getCurrentScanTime().getStandardSeconds(), is(1L));
+        
+		engine.onIdle();
+        awsEngines.onScanRemoved(engine);
+        Thread.sleep(1000);
+        assertThat(stats.getCurrentIdleTime().getStandardSeconds(), is(1L));
+		
+        awsEngines.stop(engine);
+        assertThat(stats.getCurrentRunTime().getStandardSeconds(), is(greaterThanOrEqualTo(3L)));
+        log.debug("Stopped: {}", engine);
 	}
 
 }
