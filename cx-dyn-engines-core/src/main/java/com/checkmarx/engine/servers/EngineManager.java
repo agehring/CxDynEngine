@@ -569,9 +569,13 @@ public class EngineManager implements Runnable {
 
 		private EngineServer createEngine(String name, ScanRequest scan, String url) {
 		    final String engineName = computeCxEngineName(name);
-			final int size = scan.getLoc(); 
+
+		    // rjg - Issue 14: CxMgr has a defect with 0 LOC scans, which will cause Engine 
+		    // 		registration failure (400).  Workaround set maxLoc to 1 when LOC is 0. 
+			final int minLoc = scan.getLoc();
+			final int maxLoc = minLoc > 0 ? minLoc : 1;
 			
-			return new EngineServer(engineName, url, size, size, 1, false);
+			return new EngineServer(engineName, url, minLoc, maxLoc, 1, false);
 		}
 
         private boolean checkActiveEngines(EngineSize size, ScanRequest scan) {
