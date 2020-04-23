@@ -76,7 +76,7 @@ public class CxRestAuthInterceptor implements ClientHttpRequestInterceptor {
 		map.add("username", username);
 		map.add("password", password);
 		map.add("grant_type", "password");
-		map.add("scope", "");
+		map.add("scope", scope);
 		map.add("client_id", clientId);
 		map.add("client_secret", clientSecret);
 
