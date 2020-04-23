@@ -1,3 +1,9 @@
+# only needed if using groovy scripting, to avoid Spring template warning
+spring:
+  groovy:
+    template:
+      check-template-location: false
+
 server:
   port: 8585 #Port for webserver to run (/health endpoint can be used to monitor service is up)
 
@@ -14,7 +20,7 @@ logging:
       springframework: INFO
 
 cx:
-  cxEngineUseSSL: true #Use http/https to monitor and register Engines with
+  cxEngineUseSSL: false #Use http/https to monitor and register Engines with
   concurrentScanLimit: 3 #Max number of concurrent scans (Engines) that DE will manage
   cxEnginePrefix: '**' #Prefix used within Registering engine in CX UI
   expireEngineBufferMins: 1 #Grace period before expiring and engine
