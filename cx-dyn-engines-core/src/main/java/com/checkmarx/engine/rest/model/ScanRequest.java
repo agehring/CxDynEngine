@@ -72,10 +72,14 @@ public class ScanRequest {
 
 	//private static final String TZ = "America/Chicago";
 	//private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+	
+	private final String POSTPONE = "Postpone";
 
 	private long id;
 	private String runId;
 	private Stage stage;
+	private String stageDetails;
+	private String stepDetails;
 	private String teamId;
 	private Project project;
 	private Engine engine;
@@ -87,23 +91,34 @@ public class ScanRequest {
 	private DateTime queuedOn;
 	//@JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DATE_PATTERN, timezone=TZ)
 	private DateTime engineStartedOn;
+	private DateTime completedOn;
 	@JsonProperty(value = "isIncremental")
 	private boolean incremental;
 	@JsonProperty(value = "isPublic")
 	private boolean isPublic;
 	private String origin;
+	private Integer queuePosition;
+	private Integer totalPercent;
+	private Integer stagePercent;
+	private String initiator;
 
 	public ScanRequest() {
 		// default .ctor
 	}
 
 	public ScanRequest(long id, String runId, String teamId, Project project, Stage stage,
+					   String stageDetails, String stepDetails, Integer totalPercent, Integer stagePercent, 
 					   Integer loc, boolean incremental, boolean isPublic, String origin,
-					   ProgramLanguage[] languages, DateTime dateCreated, DateTime queuedOn, DateTime engineStartedOn
+					   Integer queuePosition, String initiator, ProgramLanguage[] languages, 
+					   DateTime dateCreated, DateTime queuedOn, DateTime engineStartedOn, DateTime completedOn
 	) {
 		this.id = id;
 		this.runId = runId;
 		this.stage = stage;
+		this.stageDetails = stageDetails;
+		this.stepDetails = stepDetails;
+		this.totalPercent = totalPercent;
+		this.stagePercent = stagePercent;
 		this.teamId = teamId;
 		this.project = project;
 		this.loc = loc;
@@ -111,9 +126,12 @@ public class ScanRequest {
 		this.dateCreated = dateCreated;
 		this.queuedOn = queuedOn;
 		this.engineStartedOn = engineStartedOn;
+		this.completedOn = completedOn;
 		this.incremental = incremental;
 		this.isPublic = isPublic;
 		this.origin = origin;
+		this.queuePosition = queuePosition;
+		this.initiator = initiator;
 	}
 
 	/**
@@ -134,6 +152,14 @@ public class ScanRequest {
 
 	public Stage getStage() {
 		return stage;
+	}
+
+	public String getStageDetails() {
+		return stageDetails;
+	}
+
+	public String getStepDetails() {
+		return stepDetails;
 	}
 
 	public String getTeamId() {
@@ -174,8 +200,16 @@ public class ScanRequest {
 		return engineStartedOn;
 	}
 
+	public DateTime getCompletedOn() {
+		return completedOn;
+	}
+
 	public boolean isIncremental() {
 		return incremental;
+	}
+	
+	public boolean isPostponed() {
+		return POSTPONE.equalsIgnoreCase(stageDetails);
 	}
 
 	public boolean isPublic() {
@@ -184,6 +218,22 @@ public class ScanRequest {
 
 	public String getOrigin() {
 		return origin;
+	}
+
+	public Integer getQueuePosition() {
+		return queuePosition;
+	}
+
+	public Integer getTotalPercent() {
+		return totalPercent;
+	}
+
+	public Integer getStagePercent() {
+		return stagePercent;
+	}
+
+	public String getInitiator() {
+		return initiator;
 	}
 
 	@Override
@@ -209,12 +259,14 @@ public class ScanRequest {
 	protected MoreObjects.ToStringHelper toStringHelper() {
 		return MoreObjects.toStringHelper(this)
 				.add("id", id)
-				.add("status", getStatus())
+				.add("stage", getStatus())
+				.add("stageDetails", stageDetails)
 				.add("projectId", project.getId())
 				.add("engineId", getEngineId())
 				.add("loc", loc)
 				.add("dateCreated", ScanUtils.printDate(dateCreated))
-				.add("queuedOn", ScanUtils.printDate(queuedOn));
+				.add("queuedOn", ScanUtils.printDate(queuedOn))
+				.add("queuePosition", queuePosition);
 	}
 
 	@Override
@@ -228,15 +280,19 @@ public class ScanRequest {
 
 		return toStringHelper()
 				.add("project", project)
-				.add("stage", stage)
+				//.add("stage", stage)
+				.add("stepDetails", stepDetails)
+				.add("totalPercent", totalPercent)
+				.add("stagePercent", stagePercent)
 				.add("teamId", teamId)
 				.add("languages", printLanguages())
-				.add("dateCreated", printTime(dateCreated))
 				.add("queuedOn", queuedOn)
 				.add("engineStartedOn", printTime(engineStartedOn))
+				.add("completedOn", printTime(completedOn))
 				.add("incremental", incremental)
 				.add("isPublic", isPublic)
 				.add("origin", origin)
+				.add("initiator", initiator)
 				.omitNullValues()
 				.toString();
 	}
