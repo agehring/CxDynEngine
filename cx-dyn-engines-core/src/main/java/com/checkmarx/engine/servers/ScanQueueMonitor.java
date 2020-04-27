@@ -139,6 +139,10 @@ public class ScanQueueMonitor implements Runnable {
 
 		// skip if we've already processed scan
 		if (activeScanMap.containsKey(scanId)) {
+			// check if active scan was postponed
+			if (scan.isPostponed()) {
+				onPostponed(scanId, scan);
+			} 
 			return;
 		}
 
@@ -148,7 +152,7 @@ public class ScanQueueMonitor implements Runnable {
 			return;
 		}
 
-		log.debug("scan queued, adding to scanQueued queue; id={}", scanId);
+		log.debug("Scan queued, adding to scanQueued queue; id={}", scanId);
 		final int count = concurrentScans.get();
 		scanQueued.add(scan);
 		activeScanMap.put(scanId, scan);
@@ -173,6 +177,29 @@ public class ScanQueueMonitor implements Runnable {
 			activeScanMap.put(scanId, scan);
 			workingScans.add(scanId);
 		}
+	}
+
+	private void onPostponed(final long scanId, ScanRequest scan) {
+		log.trace("onPostponed(): {}", scan);
+		
+		// only process working scans
+		if (!workingScans.contains(scanId)) {
+			log.debug("Queued scan postponed, ignoring: {}", scan);
+			return;
+		}
+		
+		log.debug("Working scan postponed, adding back to queue and completing; id={}", scanId);
+
+		final int count = concurrentScans.decrementAndGet();
+
+		// remove from activeScan map so scan will be re-queued on next queue cycle
+		activeScanMap.remove(scanId);
+		// treat scan as finished so engine will be released
+		workingScans.remove(scanId);
+		scanFinished.add(scan);
+
+		log.info("Working scan postponed: {}; concurrentCount={}; concurrentLimit={}",
+				scan, count, concurrentScanLimit);
 	}
 
 	private void onCompleted(final long scanId, ScanRequest scan) {

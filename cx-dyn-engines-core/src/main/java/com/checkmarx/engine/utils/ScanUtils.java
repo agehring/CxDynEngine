@@ -31,29 +31,38 @@ public class ScanUtils {
         return date.toInstant().toString(FORMATTER);
     }
 
+	private final static Ordering<ScanRequest> byQueuePosition = Ordering	
+            .natural()
+            .nullsLast()
+            .onResultOf(new Function<ScanRequest, Integer>() {
+                @Override
+                public Integer apply(ScanRequest input) {
+                    return input.getQueuePosition();
+                };
+            });
+
+	private final static Ordering<ScanRequest> byQueuedOn = Ordering	
+            .natural()
+            .nullsFirst()
+            .onResultOf(new Function<ScanRequest, DateTime>() {
+                @Override
+                public DateTime apply(ScanRequest input) {
+                    return input.getQueuedOn();
+                };
+            });
+
+    private final static Ordering<ScanRequest> byDateCreated = Ordering
+            .natural()
+            .nullsFirst()
+            .onResultOf(new Function<ScanRequest, DateTime>() {
+                @Override
+                public DateTime apply(ScanRequest input) {
+                    return input.getDateCreated();
+                };
+            });
+
     public static void sortQueue(List<ScanRequest> queue) {
-
-        final Ordering<ScanRequest> byQueuedOn = Ordering
-                .natural()
-                .nullsFirst()
-                .onResultOf(new Function<ScanRequest, DateTime>() {
-                    @Override
-                    public DateTime apply(ScanRequest input) {
-                        return input.getQueuedOn();
-                    };
-                });
-
-        final Ordering<ScanRequest> byDateCreated = Ordering
-                .natural()
-                .nullsFirst()
-                .onResultOf(new Function<ScanRequest, DateTime>() {
-                    @Override
-                    public DateTime apply(ScanRequest input) {
-                        return input.getDateCreated();
-                    };
-                });
-
-        queue.sort(byQueuedOn.thenComparing(byDateCreated));
+        queue.sort(byQueuePosition.thenComparing(byQueuedOn.thenComparing(byDateCreated)));
     }
 
 }
