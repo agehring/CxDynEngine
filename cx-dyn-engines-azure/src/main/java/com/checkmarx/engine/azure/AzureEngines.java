@@ -182,7 +182,7 @@ public class AzureEngines implements CxEngines {
 		final String engineId = lookupEngineId(instance);
 		final DynamicEngine engine = DynamicEngine.fromProvisionedInstance(
 				name, size, poolConfig.getEngineExpireIntervalSecs(),
-				launchTime, isRunning, scanId, engineId);
+				launchTime, launchTime, isRunning, scanId, engineId);
 		if (isRunning) {
 			engine.setHost(createHost(name, instance));
 		}
