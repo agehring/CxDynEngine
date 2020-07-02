@@ -19,6 +19,8 @@ jobs:
           cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AZURE-${VERSION}-SNAPSHOT.jar
           ./gradlew clean build -Paws -x test
           cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-AWS-${VERSION}-SNAPSHOT.jar
+          ./gradlew clean build -Pvmware -x test
+          cp cx-dyn-engines-app/build/libs/cx-dyn-engines-app-${VERSION}-SNAPSHOT.jar ./release/cx-dyn-engines-app-VMWARE-${VERSION}-SNAPSHOT.jar
       - save_cache:
           paths:
             - ~/.gradle/wrapper
@@ -35,6 +37,7 @@ jobs:
             - ./release/*
             - Dockerfile-aws
             - Dockerfile-azure
+            - Dockerfile-vmware
             - version.txt
 
   docker-push:
@@ -55,6 +58,7 @@ jobs:
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} docker.io
             docker build -f Dockerfile-aws -t ${DOCKER_REPO}:aws-${VERSION} .
             docker build -f Dockerfile-azure -t ${DOCKER_REPO}:azure-${VERSION} .
+            docker build -f Dockerfile-vmware -t ${DOCKER_REPO}:vmware-${VERSION} .
             docker push ${DOCKER_REPO}
 
   publish-github-release:
