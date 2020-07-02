@@ -8,15 +8,24 @@ This service is written in Java, using [Spring Boot](https://projects.spring.io/
 
 ### Build
 
-    ./gradlew clean build
-
+### AWS
+    ./gradlew clean build -Paws
+### Azure
+    ./gradlew clean build -Pazure
+### VMware
+    ./gradlew clean build -Pvmware
 *To skip tests:*
 
-    ./gradlew build -x test
+    ./gradlew build -P<profile> -x test 
 
 ### Run
 
-To run the dynamic engine service,
+After build is complete, the jar will be bundled under the folder
+cx-dyn-engines-app/build/libs/
+
+To run the dynamic engine service, 
+*ensure you provide the infrastructure profile when running (----spring.profiles.active=aws for example)*
+
 
 *From command line:*
 
